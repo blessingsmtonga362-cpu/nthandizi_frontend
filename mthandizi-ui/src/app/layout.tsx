@@ -1,6 +1,6 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import "./globals.css"; // <--- THIS LINE IS CRITICAL
+import "./globals.css"; 
 import { ErrorHandler } from "@/components/error-handler";
 
 export const metadata: Metadata = {
