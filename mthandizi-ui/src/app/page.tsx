@@ -70,7 +70,7 @@ export default function LandingPage() {
           className="flex items-center gap-6"
         >
           <Link
-            href="/login"
+            href="/auth/login"
             className={cn("text-sm font-bold transition-colors", !isScrolled ? "text-white/80 hover:text-white" : "text-brand-slate hover:text-brand-blue")}
           >
             Sign In
@@ -163,7 +163,7 @@ export default function LandingPage() {
 
               <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-5 justify-center items-center">
                 <Link
-                  href="/register"
+                  href="register"
                   className="h-14 px-12 bg-brand-blue text-white text-base font-bold flex items-center gap-2 hover:bg-brand-blueDark hover:scale-[1.02] transition-all duration-200 shadow-2xl shadow-brand-blue/30"
                 >
                   Get Started Now <ArrowRight size={18} />
