@@ -70,7 +70,7 @@ export default function LandingPage() {
           className="flex items-center gap-6"
         >
           <Link
-            href="/auth/login"
+            href="/login"
             className={cn("text-sm font-bold transition-colors", !isScrolled ? "text-white/80 hover:text-white" : "text-brand-slate hover:text-brand-blue")}
           >
             Sign In
