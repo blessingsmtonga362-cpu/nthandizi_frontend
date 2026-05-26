@@ -1,6 +1,5 @@
-// app/(auth)/verify/page.tsx
+
 import { Suspense } from "react";
-import VerifyContent from "./VerifyContent";
 
 export default function VerifyPage() {
   return (
@@ -12,7 +11,7 @@ export default function VerifyPage() {
         </div>
       </div>
     }>
-      <VerifyContent />
+
     </Suspense>
   );
 }
