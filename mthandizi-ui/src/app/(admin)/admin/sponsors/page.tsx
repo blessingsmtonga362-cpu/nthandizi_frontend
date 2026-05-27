@@ -40,7 +40,7 @@ export default function SponsorsPage() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    
     void loadSponsors().catch(() => {});
   }, []);
 
@@ -104,7 +104,7 @@ export default function SponsorsPage() {
       <div className="flex justify-between items-end mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Partner Sponsors</h1>
-          <p className="text-slate-500 text-sm mt-1">Create sponsors and allocate approved applicants using live backend data.</p>
+          <p className="text-slate-500 text-sm mt-1">Create sponsors and allocate approved applicants.</p>
         </div>
       </div>
 
@@ -165,7 +165,7 @@ export default function SponsorsPage() {
 
                 <div className="w-20 h-20 bg-brand-surface flex items-center justify-center text-brand-blue font-black text-2xl border border-slate-100 overflow-hidden">
                   {logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
+                    
                     <img src={logoUrl} alt={sponsor.name} className="h-full w-full object-cover" />
                   ) : (
                     sponsor.name.substring(0, 2).toUpperCase()
@@ -206,7 +206,7 @@ export default function SponsorsPage() {
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-brand-slate text-white flex items-center justify-center font-bold text-xs overflow-hidden">
                     {activeSponsor.logoUrl ? (
-                      // eslint-disable-next-line @next/next/no-img-element
+                    
                       <img src={getAssetUrl(activeSponsor.logoUrl) ?? ""} alt={activeSponsor.name} className="h-full w-full object-cover" />
                     ) : (
                       activeSponsor.name.substring(0, 2).toUpperCase()
