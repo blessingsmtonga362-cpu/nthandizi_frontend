@@ -63,13 +63,24 @@ function getPersonalFields(personal: PersonalData, payment: PaymentData): unknow
 }
 
 function getFamilyFields(family: FamilyData): unknown[] {
+  // Siblings-by-level is considered complete only when the total allocated
+  // across levels exactly equals the number still in school.
+  // This replaces the three individual level fields with one special value.
+  const stillInSchool = parseInt(family.numberStillInSchool) || 0;
+  const levelTotal =
+    (parseInt(family.siblingsInPrimary) || 0) +
+    (parseInt(family.siblingsInSecondary) || 0) +
+    (parseInt(family.siblingsInTertiary) || 0);
+  const levelAllocationComplete =
+    family.numberStillInSchool !== "" && levelTotal === stillInSchool
+      ? "allocated"
+      : "";
+
   const siblings = [
     family.parentalStatus,
     family.numberOfSiblings,
     family.numberStillInSchool,
-    family.siblingsInPrimary,
-    family.siblingsInSecondary,
-    family.siblingsInTertiary,
+    levelAllocationComplete, // single special replacing the 3 individual level fields
   ];
 
   if (family.parentalStatus === "both") {
@@ -93,6 +104,7 @@ function getFamilyFields(family: FamilyData): unknown[] {
       family.motherTa,
       family.motherResidentialAddress,
       family.motherPostalAddress,
+      family.guarantorConsentFile,
     ];
   }
 
@@ -109,6 +121,7 @@ function getFamilyFields(family: FamilyData): unknown[] {
       family.parentResidentialAddress,
       family.parentPostalAddress,
       family.deceasedParentId,
+      family.guarantorConsentFile,
     ];
   }
 
@@ -165,7 +178,6 @@ export function calculateApplicationProgress(data: ApplicationData): Application
   const personalCount = countFields(getPersonalFields(data.personal, data.payment));
   const familyCount = countFields(getFamilyFields(data.family));
   const educationCount = countFields(getEducationFields(data));
-  const reviewCount = countFields(getReviewFields(data));
 
   const reviewSection = getReviewSectionState(data);
   const reviewFilled =

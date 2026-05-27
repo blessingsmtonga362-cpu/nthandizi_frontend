@@ -48,33 +48,120 @@ function SiblingsSection() {
   const { data, updateFamily } = useApplicationStore();
   const f = data.family;
 
+  const totalSiblings = parseInt(f.numberOfSiblings) || 0;
+  const stillInSchool = parseInt(f.numberStillInSchool) || 0;
+  const inPrimary = parseInt(f.siblingsInPrimary) || 0;
+  const inSecondary = parseInt(f.siblingsInSecondary) || 0;
+  const inTertiary = parseInt(f.siblingsInTertiary) || 0;
+
+  const levelTotal = inPrimary + inSecondary + inTertiary;
+  const remainingAfterPrimary = Math.max(0, stillInSchool - inPrimary);
+  const remainingAfterSecondary = Math.max(0, remainingAfterPrimary - inSecondary);
+
+  const schoolExceedsSiblings =
+    f.numberStillInSchool !== "" && f.numberOfSiblings !== "" &&
+    stillInSchool > totalSiblings;
+
+  const levelExceedsSchool =
+    f.numberStillInSchool !== "" && levelTotal > stillInSchool;
+
+  const errorClass = "border-red-400 focus:border-red-500";
+  const hintClass = "text-xs font-normal text-red-500 mt-1";
+
   return (
     <div className="space-y-6">
       <SectionHeader title="Siblings Information" icon={Users} />
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="space-y-2">
           <label className={labelClass}>Number of Siblings</label>
-          <Input type="number" min="0" className={inputClass} value={f.numberOfSiblings} onChange={(e) => updateFamily({ numberOfSiblings: e.target.value })} />
+          <Input
+            type="number"
+            min="0"
+            className={inputClass}
+            value={f.numberOfSiblings}
+            onChange={(e) => updateFamily({ numberOfSiblings: e.target.value })}
+          />
         </div>
         <div className="space-y-2">
           <label className={labelClass}>Number Still in School</label>
-          <Input type="number" min="0" className={inputClass} value={f.numberStillInSchool} onChange={(e) => updateFamily({ numberStillInSchool: e.target.value })} />
+          <Input
+            type="number"
+            min="0"
+            className={cn(inputClass, schoolExceedsSiblings && errorClass)}
+            value={f.numberStillInSchool}
+            onChange={(e) => updateFamily({ numberStillInSchool: e.target.value })}
+          />
+          {schoolExceedsSiblings && (
+            <p className={hintClass}>
+              Cannot exceed number of siblings ({totalSiblings}).
+            </p>
+          )}
         </div>
       </div>
+
       <div className="border border-slate-100 bg-slate-50/70 p-6">
-        <p className="text-sm font-medium text-slate-700 mb-5">Siblings Still in School by Level</p>
+        <div className="flex items-center justify-between mb-5">
+          <p className="text-sm font-medium text-slate-700">Siblings Still in School by Level</p>
+          {f.numberStillInSchool !== "" && (
+            <span className={cn(
+              "text-xs font-normal px-2 py-1 border",
+              levelExceedsSchool
+                ? "border-red-200 bg-red-50 text-red-600"
+                : levelTotal === stillInSchool && stillInSchool > 0
+                  ? "border-emerald-200 bg-emerald-50 text-emerald-600"
+                  : "border-slate-200 bg-white text-slate-500"
+            )}>
+              {levelTotal} / {stillInSchool} allocated
+            </span>
+          )}
+        </div>
+        {levelExceedsSchool && (
+          <p className={cn(hintClass, "mb-4")}>
+            Total across levels ({levelTotal}) exceeds siblings still in school ({stillInSchool}).
+          </p>
+        )}
         <div className="grid md:grid-cols-3 gap-6">
           <div className="space-y-2">
             <label className={labelClass}>Primary</label>
-            <Input type="number" min="0" className={inputClass} value={f.siblingsInPrimary} onChange={(e) => updateFamily({ siblingsInPrimary: e.target.value })} />
+            <Input
+              type="number"
+              min="0"
+              max={stillInSchool}
+              className={cn(inputClass, inPrimary > stillInSchool && errorClass)}
+              value={f.siblingsInPrimary}
+              onChange={(e) => updateFamily({ siblingsInPrimary: e.target.value })}
+            />
+            {f.numberStillInSchool !== "" && (
+              <p className="text-[10px] font-normal text-slate-400">Max {stillInSchool}</p>
+            )}
           </div>
           <div className="space-y-2">
             <label className={labelClass}>Secondary</label>
-            <Input type="number" min="0" className={inputClass} value={f.siblingsInSecondary} onChange={(e) => updateFamily({ siblingsInSecondary: e.target.value })} />
+            <Input
+              type="number"
+              min="0"
+              max={remainingAfterPrimary}
+              className={cn(inputClass, inSecondary > remainingAfterPrimary && errorClass)}
+              value={f.siblingsInSecondary}
+              onChange={(e) => updateFamily({ siblingsInSecondary: e.target.value })}
+            />
+            {f.numberStillInSchool !== "" && (
+              <p className="text-[10px] font-normal text-slate-400">Max {remainingAfterPrimary} remaining</p>
+            )}
           </div>
           <div className="space-y-2">
             <label className={labelClass}>Tertiary</label>
-            <Input type="number" min="0" className={inputClass} value={f.siblingsInTertiary} onChange={(e) => updateFamily({ siblingsInTertiary: e.target.value })} />
+            <Input
+              type="number"
+              min="0"
+              max={remainingAfterSecondary}
+              className={cn(inputClass, inTertiary > remainingAfterSecondary && errorClass)}
+              value={f.siblingsInTertiary}
+              onChange={(e) => updateFamily({ siblingsInTertiary: e.target.value })}
+            />
+            {f.numberStillInSchool !== "" && (
+              <p className="text-[10px] font-normal text-slate-400">Max {remainingAfterSecondary} remaining</p>
+            )}
           </div>
         </div>
       </div>
@@ -86,15 +173,38 @@ export default function Step2() {
   const { data, updateFamily } = useApplicationStore();
   const f = data.family;
 
+  // Detect if the current condition's fields have any data filled —
+  // if so, lock the dropdown to prevent switching and losing data.
+  const bothHasData = !!(
+    f.fatherFirstName || f.fatherSurname || f.fatherNationalId || f.fatherPhone ||
+    f.motherFirstName || f.motherSurname || f.motherNationalId || f.motherPhone
+  );
+  const oneHasData = !!(
+    f.parentFirstName || f.parentSurname || f.parentNationalId || f.parentPhone || f.deceasedParentId
+  );
+  const noneHasData = !!(
+    f.guardianFirstName || f.guardianSurname || f.guardianNationalId || f.guardianPhone ||
+    f.deceasedFatherId || f.deceasedMotherId
+  );
+
+  const isLocked =
+    (f.parentalStatus === "both" && bothHasData) ||
+    (f.parentalStatus === "one" && oneHasData) ||
+    (f.parentalStatus === "none" && noneHasData);
+
   return (
     <div className="space-y-12">
       {/* 1. Parental Status Selection */}
       <div className="max-w-md">
         <label className={labelClass}>Household Parental Status</label>
         <div className="relative">
-          <select 
-            className={selectClass} 
-            value={f.parentalStatus} 
+          <select
+            className={cn(
+              selectClass,
+              isLocked && "opacity-60 cursor-not-allowed pointer-events-none bg-slate-50"
+            )}
+            value={f.parentalStatus}
+            disabled={isLocked}
             onChange={(e) => updateFamily({ parentalStatus: e.target.value })}
           >
             <option value="">Select status</option>
@@ -106,6 +216,11 @@ export default function Step2() {
             <Users size={16} />
           </div>
         </div>
+        {isLocked && (
+          <p className="text-xs font-normal text-slate-400 mt-2">
+            Clear all fields in this section to change the parental status.
+          </p>
+        )}
       </div>
 
       {/* 2. Conditional Details Sections */}
