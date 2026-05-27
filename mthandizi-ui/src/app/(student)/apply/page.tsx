@@ -138,7 +138,7 @@ export default function ApplicationWizard() {
     // The "Continue" button only advances the step counter — it never calls the API.
     // All form data has been held in memory (Zustand) and locally in IndexedDB
     // as a draft. On Submit, everything is sent together in one request.
-    
+  
     setSubmitting(true);
     setSubmitError("");
     try {
@@ -160,15 +160,71 @@ export default function ApplicationWizard() {
         throw new Error(academicsValidationError);
       }
 
-      // Strip File objects — they need to be uploaded separately via multipart
+      // Strip File objects and irrelevant conditional family fields based on parentalStatus
+      const { family } = data;
+      const sharedFamilyFields = {
+        parentalStatus: family.parentalStatus,
+        numberOfSiblings: family.numberOfSiblings,
+        numberStillInSchool: family.numberStillInSchool,
+        siblingsInPrimary: family.siblingsInPrimary,
+        siblingsInSecondary: family.siblingsInSecondary,
+        siblingsInTertiary: family.siblingsInTertiary,
+      };
+
+      const conditionalFamilyFields =
+        family.parentalStatus === "both"
+          ? {
+              fatherFirstName: family.fatherFirstName,
+              fatherSurname: family.fatherSurname,
+              fatherNationalId: family.fatherNationalId,
+              fatherPhone: family.fatherPhone,
+              fatherProfession: family.fatherProfession,
+              fatherMonthlyIncome: family.fatherMonthlyIncome,
+              fatherTa: family.fatherTa,
+              fatherResidentialAddress: family.fatherResidentialAddress,
+              fatherPostalAddress: family.fatherPostalAddress,
+              motherFirstName: family.motherFirstName,
+              motherSurname: family.motherSurname,
+              motherNationalId: family.motherNationalId,
+              motherPhone: family.motherPhone,
+              motherProfession: family.motherProfession,
+              motherMonthlyIncome: family.motherMonthlyIncome,
+              motherTa: family.motherTa,
+              motherResidentialAddress: family.motherResidentialAddress,
+              motherPostalAddress: family.motherPostalAddress,
+            }
+          : family.parentalStatus === "one"
+            ? {
+                parentFirstName: family.parentFirstName,
+                parentSurname: family.parentSurname,
+                parentNationalId: family.parentNationalId,
+                parentPhone: family.parentPhone,
+                parentMonthlyIncome: family.parentMonthlyIncome,
+                studentRelationship: family.studentRelationship,
+                parentTa: family.parentTa,
+                parentResidentialAddress: family.parentResidentialAddress,
+                parentPostalAddress: family.parentPostalAddress,
+                deceasedParentId: family.deceasedParentId,
+              }
+            : family.parentalStatus === "none"
+              ? {
+                  guardianFirstName: family.guardianFirstName,
+                  guardianSurname: family.guardianSurname,
+                  guardianNationalId: family.guardianNationalId,
+                  guardianPhone: family.guardianPhone,
+                  guardianMonthlyIncome: family.guardianMonthlyIncome,
+                  relationshipToGuardian: family.relationshipToGuardian,
+                  guardianTa: family.guardianTa,
+                  guardianResidentialAddress: family.guardianResidentialAddress,
+                  guardianPostalAddress: family.guardianPostalAddress,
+                  deceasedFatherId: family.deceasedFatherId,
+                  deceasedMotherId: family.deceasedMotherId,
+                }
+              : {};
+
       const payload = {
         personal: { ...data.personal, studentIdFile: undefined, nationalIdFile: undefined },
-        family: {
-          ...data.family,
-          deathCertificateFile: undefined,
-          guarantorNationalIdFile: undefined,
-          guarantorConsentFile: undefined,
-        },
+        family: { ...sharedFamilyFields, ...conditionalFamilyFields },
         education: data.education,
         academics: { ...data.academics, transcriptFile: undefined },
         payment: data.payment,
@@ -205,7 +261,7 @@ export default function ApplicationWizard() {
   return (
     <div className="max-w-4xl mx-auto pb-32 pt-4">
 
-      {/*  Already submitted screen */}
+      {/* Already submitted screen */}
       {alreadySubmitted ? (
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -235,7 +291,7 @@ export default function ApplicationWizard() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-8"
         >
-         
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/apply.png" alt="Application" className="h-16 w-16 object-contain" />
           <div>
             <h1 className="text-3xl font-display font-bold text-brand-slate tracking-tight">Student Profiling</h1>
