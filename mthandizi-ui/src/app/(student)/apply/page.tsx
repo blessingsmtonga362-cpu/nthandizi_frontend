@@ -104,7 +104,10 @@ export default function ApplicationWizard() {
   const getSiblingsAllocationError = (): string | null => {
     if (data.currentStep !== 2) return null;
     const f = data.family;
-    if (!f.numberStillInSchool) return null; // not filled yet, skip
+    // No siblings — nothing to allocate
+    if (!f.numberOfSiblings || parseInt(f.numberOfSiblings) === 0) return null;
+    // Has siblings but numberStillInSchool not filled yet — skip (other validation will catch empty fields)
+    if (!f.numberStillInSchool) return null;
     const stillInSchool = parseInt(f.numberStillInSchool) || 0;
     const levelTotal =
       (parseInt(f.siblingsInPrimary) || 0) +
@@ -202,7 +205,7 @@ export default function ApplicationWizard() {
   return (
     <div className="max-w-4xl mx-auto pb-32 pt-4">
 
-      {/* Already submitted screen  */}
+      {/*  Already submitted screen */}
       {alreadySubmitted ? (
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -232,7 +235,7 @@ export default function ApplicationWizard() {
           animate={{ opacity: 1, y: 0 }}
           className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-8"
         >
-        
+         
           <img src="/apply.png" alt="Application" className="h-16 w-16 object-contain" />
           <div>
             <h1 className="text-3xl font-display font-bold text-brand-slate tracking-tight">Student Profiling</h1>
