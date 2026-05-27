@@ -49,8 +49,6 @@ function getPersonalFields(personal: PersonalData, payment: PaymentData): unknow
     personal.ta,
     personal.registrationNumber,
     personal.gender,
-    personal.studentIdFile,
-    personal.nationalIdFile,
     payment.paymentMethod,
   ];
 
