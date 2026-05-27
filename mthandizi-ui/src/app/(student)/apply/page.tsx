@@ -1,0 +1,348 @@
+"use client";
+
+import { useApplicationStore } from "@/lib/store/use-application-store";
+import { useOfflinePersistence, clearOfflinePersistence } from "@/hooks/use-offline-persistence";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, ChevronRight, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Step1 from "@/components/student/wizard/step-1";
+import Step2 from "@/components/student/wizard/step-2";
+import Step3 from "@/components/student/wizard/step-3";
+import Step4 from "@/components/student/wizard/step-4";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { submitApplication, getApplicationStatus, getStoredUser } from "@/lib/api";
+import { calculateApplicationProgress } from "@/lib/application-progress";
+import { toastSuccess, toastError } from "@/lib/toast";
+import Link from "next/link";
+
+const STEPS = ["Personal", "Family", "Education", "Review"];
+
+type EducationDraft = {
+  schoolName?: string;
+  tuitionFee?: string;
+  yearCompleted?: string;
+  whoPaidFees?: string;
+};
+
+type AcademicsDraft = {
+  programOfStudy?: string;
+  department?: string;
+  yearOfStudy?: string;
+};
+
+function getIncompleteEducationMessage(label: string, level: EducationDraft): string | null {
+  const values = [
+    level.schoolName?.trim(),
+    level.tuitionFee?.trim(),
+    level.yearCompleted?.trim(),
+    level.whoPaidFees?.trim(),
+  ];
+
+  const hasAnyValue = values.some((value) => Boolean(value));
+  if (!hasAnyValue) return null;
+
+  const missingFields: string[] = [];
+
+  if (!level.schoolName?.trim()) missingFields.push("school name");
+  if (!level.tuitionFee?.trim()) missingFields.push("tuition fee");
+  if (!level.yearCompleted?.trim()) missingFields.push("year completed");
+  if (!level.whoPaidFees?.trim()) missingFields.push("who paid fees");
+
+  if (missingFields.length === 0) return null;
+
+  return `${label} education is incomplete. Please provide ${missingFields.join(", ")}.`;
+}
+
+function getIncompleteAcademicsMessage(academics: AcademicsDraft): string | null {
+  const values = [
+    academics.programOfStudy?.trim(),
+    academics.department?.trim(),
+    academics.yearOfStudy?.trim(),
+  ];
+
+  const hasAnyValue = values.some((value) => Boolean(value));
+  if (!hasAnyValue) {
+    return "Academic details are required. Please provide your program of study, department, and year of study.";
+  }
+
+  const missingFields: string[] = [];
+
+  if (!academics.programOfStudy?.trim()) missingFields.push("program of study");
+  if (!academics.department?.trim()) missingFields.push("department");
+  if (!academics.yearOfStudy?.trim()) missingFields.push("year of study");
+
+  if (missingFields.length === 0) return null;
+
+  return `Academic details are incomplete. Please provide ${missingFields.join(", ")}.`;
+}
+
+export default function ApplicationWizard() {
+  useOfflinePersistence();
+  const { data, setStep, reset } = useApplicationStore();
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [started, setStarted] = useState(false);
+  const [alreadySubmitted, setAlreadySubmitted] = useState(false);
+  const router = useRouter();
+
+  // Check on mount whether the application was already submitted
+  useEffect(() => {
+    getApplicationStatus()
+      .then((s) => {
+        if (s.status === "submitted" || s.status === "reviewing" || s.status === "approved") {
+          setAlreadySubmitted(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const nextStep = () => setStep(Math.min(data.currentStep + 1, 4));
+  const prevStep = () => setStep(Math.max(data.currentStep - 1, 1));
+
+  // Step 2 siblings allocation validation
+  const getSiblingsAllocationError = (): string | null => {
+    if (data.currentStep !== 2) return null;
+    const f = data.family;
+    if (!f.numberStillInSchool) return null; // not filled yet, skip
+    const stillInSchool = parseInt(f.numberStillInSchool) || 0;
+    const levelTotal =
+      (parseInt(f.siblingsInPrimary) || 0) +
+      (parseInt(f.siblingsInSecondary) || 0) +
+      (parseInt(f.siblingsInTertiary) || 0);
+    if (levelTotal !== stillInSchool) {
+      return `Please fully allocate siblings by level. ${levelTotal} of ${stillInSchool} allocated.`;
+    }
+    return null;
+  };
+
+  const handleContinue = () => {
+    const allocationError = getSiblingsAllocationError();
+    if (allocationError) {
+      setSubmitError(allocationError);
+      return;
+    }
+    setSubmitError("");
+    nextStep();
+  };
+
+  // If the store already has progress, skip the landing screen
+  const showLanding = !started && data.currentStep === 1 &&
+    !data.personal.firstName && !data.personal.surname;
+
+  const handleSubmit = async () => {
+    // This is the ONLY place data is sent to the backend database.
+    // The "Continue" button only advances the step counter — it never calls the API.
+    // All form data has been held in memory (Zustand) and locally in IndexedDB
+    // as a draft. On Submit, everything is sent together in one request.
+    
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      if (!data.declarationAccepted) {
+        throw new Error("Please accept the declaration before submitting your application.");
+      }
+
+      const educationValidationError =
+        getIncompleteEducationMessage("Primary", data.education.primary) ??
+        getIncompleteEducationMessage("Secondary", data.education.secondary) ??
+        getIncompleteEducationMessage("Tertiary", data.education.tertiary);
+
+      if (educationValidationError) {
+        throw new Error(educationValidationError);
+      }
+
+      const academicsValidationError = getIncompleteAcademicsMessage(data.academics);
+      if (academicsValidationError) {
+        throw new Error(academicsValidationError);
+      }
+
+      // Strip File objects — they need to be uploaded separately via multipart
+      const payload = {
+        personal: { ...data.personal, studentIdFile: undefined, nationalIdFile: undefined },
+        family: {
+          ...data.family,
+          deathCertificateFile: undefined,
+          guarantorNationalIdFile: undefined,
+          guarantorConsentFile: undefined,
+        },
+        education: data.education,
+        academics: { ...data.academics, transcriptFile: undefined },
+        payment: data.payment,
+      };
+      const response = await submitApplication(payload);
+      reset();
+      await clearOfflinePersistence();
+      const userId = getStoredUser()?.id ?? "anonymous";
+      localStorage.removeItem(`application_started_${userId}`);
+      
+      // Show success toast
+      toastSuccess({
+        title: "Application Submitted",
+        description: "Your application has been received and is now in the review queue.",
+      });
+      
+      const params = new URLSearchParams({
+        submittedAt: response.submittedAt,
+        status: response.applicationStatus,
+      });
+      router.push(`/apply/success?${params.toString()}`);
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "Submission failed. Please try again.";
+      setSubmitError(errorMessage);
+      toastError({
+        title: "Submission Failed",
+        description: errorMessage,
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto pb-32 pt-4">
+
+      {/* Already submitted screen  */}
+      {alreadySubmitted ? (
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-8"
+        >
+          <CheckCircle2 size={44} className="text-emerald-500" />
+          <div>
+            <h1 className="text-3xl font-display font-bold text-brand-slate tracking-tight mb-3">
+              Application Already Submitted
+            </h1>
+            <p className="text-slate-500 font-normal max-w-md">
+              You have already completed and submitted your profiling application.
+              You cannot apply again. Track your progress on the status page.
+            </p>
+          </div>
+          <Link
+            href="/status"
+            className="h-14 px-12 bg-brand-slate text-white font-bold text-sm tracking-wide hover:bg-brand-blue hover:scale-[1.02] transition-all duration-200 flex items-center gap-2"
+          >
+            Track Application Status <ChevronRight size={18} />
+          </Link>
+        </motion.div>
+      ) : showLanding ? (
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center min-h-[60vh] text-center gap-8"
+        >
+        
+          <img src="/apply.png" alt="Application" className="h-16 w-16 object-contain" />
+          <div>
+            <h1 className="text-3xl font-display font-bold text-brand-slate tracking-tight">Student Profiling</h1>
+            <p className="text-slate-500 font-normal mt-2 max-w-md">
+              Complete your profile to be considered for support.
+              The process has 4 sections and takes about 10 minutes.
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              const userId = getStoredUser()?.id ?? "anonymous";
+              localStorage.setItem(`application_started_${userId}`, "true");
+              setStarted(true);
+            }}
+            className="h-14 px-12 bg-brand-slate text-white font-bold text-sm tracking-wide hover:bg-brand-blue hover:scale-[1.02] transition-all duration-200"
+          >
+            Start Application
+          </button>
+        </motion.div>
+      ) : (
+        <>
+          {/* Header — step counter + dynamic title */}
+          <div className="mb-4">
+            <p className="text-xs font-semibold text-brand-blue mb-1">
+              Step {data.currentStep} of {STEPS.length}
+            </p>
+            <h1 className="text-3xl font-display font-bold text-brand-slate tracking-tight">
+              {STEPS[data.currentStep - 1]} Details
+            </h1>
+          </div>
+
+          <div className="mb-10">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-medium text-slate-500">Application progress</span>
+              <span className="text-xs font-bold text-brand-blue">{calculateApplicationProgress(data).percent}%</span>
+            </div>
+            <div className="h-1.5 w-full overflow-hidden" style={{ backgroundColor: "#F7F5F2" }}>
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${calculateApplicationProgress(data).percent}%` }}
+                transition={{ duration: 0.4, ease: "easeOut" }}
+                className="h-full bg-brand-blue"
+              />
+            </div>
+          </div>
+
+          {/* Form — no box, fields rest directly on the background */}
+          <div className="min-h-[400px]">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={data.currentStep}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                transition={{ duration: 0.4, ease: "circOut" }}
+              >
+                {data.currentStep === 1 && <Step1 />}
+                {data.currentStep === 2 && <Step2 />}
+                {data.currentStep === 3 && <Step3 />}
+                {data.currentStep === 4 && <Step4 />}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Nav Footer */}
+          <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
+            <Button
+              variant="ghost"
+              onClick={prevStep}
+              disabled={data.currentStep === 1}
+              className="font-bold text-brand-blue text-sm h-12 px-8"
+            >
+              <ChevronLeft className="mr-2 w-4 h-4" /> Back
+            </Button>
+
+            <div className="flex flex-col items-center">
+              <div className="text-xs text-slate-400 font-medium">
+                Step {data.currentStep} of 4
+              </div>
+              {submitError && (
+                <p className="text-red-500 text-[10px] font-bold mt-2 text-center max-w-xs">{submitError}</p>
+              )}
+            </div>
+
+            {data.currentStep < 4 ? (
+              <button
+                onClick={handleContinue}
+                className="h-14 px-12 bg-brand-slate text-white font-bold text-sm w-full sm:w-auto tracking-wide hover:bg-brand-blue hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2"
+              >
+                Continue <ChevronRight className="w-5 h-5" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="h-14 px-12 bg-brand-slate text-white font-bold text-sm w-full sm:w-auto tracking-wide hover:bg-brand-blue hover:scale-[1.02] transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+              >
+                {submitting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  <>Submit Profile <ChevronRight className="w-5 h-5" /></>
+                )}
+              </button>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
