@@ -162,15 +162,29 @@ function getEducationLevelFields(level: EducationLevel): unknown[] {
   return [level.schoolName, level.tuitionFee, level.yearCompleted, level.whoPaidFees];
 }
 
+function hasTertiaryData(level: EducationLevel): boolean {
+  return !!(
+    level.schoolName?.trim() ||
+    level.tuitionFee?.trim() ||
+    level.yearCompleted?.trim() ||
+    level.whoPaidFees?.trim()
+  );
+}
+
 function getEducationFields(data: ApplicationData): unknown[] {
-  return [
+  // Primary and secondary are always required.
+  // Tertiary is optional — but once the student starts filling it,
+  // all four of its fields become required (partial → complete cycle).
+  const required = [
     ...getEducationLevelFields(data.education.primary),
     ...getEducationLevelFields(data.education.secondary),
-    ...getEducationLevelFields(data.education.tertiary),
-    data.academics.programOfStudy,
-    data.academics.department,
-    data.academics.yearOfStudy,
   ];
+
+  if (hasTertiaryData(data.education.tertiary)) {
+    return [...required, ...getEducationLevelFields(data.education.tertiary)];
+  }
+
+  return required;
 }
 
 function getReviewFields(data: ApplicationData): unknown[] {

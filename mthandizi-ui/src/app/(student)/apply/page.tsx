@@ -25,12 +25,6 @@ type EducationDraft = {
   whoPaidFees?: string;
 };
 
-type AcademicsDraft = {
-  programOfStudy?: string;
-  department?: string;
-  yearOfStudy?: string;
-};
-
 function getIncompleteEducationMessage(label: string, level: EducationDraft): string | null {
   const values = [
     level.schoolName?.trim(),
@@ -52,29 +46,6 @@ function getIncompleteEducationMessage(label: string, level: EducationDraft): st
   if (missingFields.length === 0) return null;
 
   return `${label} education is incomplete. Please provide ${missingFields.join(", ")}.`;
-}
-
-function getIncompleteAcademicsMessage(academics: AcademicsDraft): string | null {
-  const values = [
-    academics.programOfStudy?.trim(),
-    academics.department?.trim(),
-    academics.yearOfStudy?.trim(),
-  ];
-
-  const hasAnyValue = values.some((value) => Boolean(value));
-  if (!hasAnyValue) {
-    return "Academic details are required. Please provide your program of study, department, and year of study.";
-  }
-
-  const missingFields: string[] = [];
-
-  if (!academics.programOfStudy?.trim()) missingFields.push("program of study");
-  if (!academics.department?.trim()) missingFields.push("department");
-  if (!academics.yearOfStudy?.trim()) missingFields.push("year of study");
-
-  if (missingFields.length === 0) return null;
-
-  return `Academic details are incomplete. Please provide ${missingFields.join(", ")}.`;
 }
 
 export default function ApplicationWizard() {
@@ -155,11 +126,6 @@ export default function ApplicationWizard() {
         throw new Error(educationValidationError);
       }
 
-      const academicsValidationError = getIncompleteAcademicsMessage(data.academics);
-      if (academicsValidationError) {
-        throw new Error(academicsValidationError);
-      }
-
       // Strip File objects and irrelevant conditional family fields based on parentalStatus
       const { family } = data;
       const sharedFamilyFields = {
@@ -226,7 +192,6 @@ export default function ApplicationWizard() {
         personal: { ...data.personal, studentIdFile: undefined, nationalIdFile: undefined },
         family: { ...sharedFamilyFields, ...conditionalFamilyFields },
         education: data.education,
-        academics: { ...data.academics, transcriptFile: undefined },
         payment: data.payment,
       };
       const response = await submitApplication(payload);
