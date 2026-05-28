@@ -49,24 +49,35 @@ function SiblingsSection() {
   const f = data.family;
 
   const totalSiblings = parseInt(f.numberOfSiblings) || 0;
-  const stillInSchool = parseInt(f.numberStillInSchool) || 0;
-  const inPrimary = parseInt(f.siblingsInPrimary) || 0;
-  const inSecondary = parseInt(f.siblingsInSecondary) || 0;
-  const inTertiary = parseInt(f.siblingsInTertiary) || 0;
+  const stillInSchool = parseInt(f.numberStillInSchool || "0") || 0;
+  const inPrimary = parseInt(f.siblingsInPrimary || "0") || 0;
+  const inSecondary = parseInt(f.siblingsInSecondary || "0") || 0;
+  const inTertiary = parseInt(f.siblingsInTertiary || "0") || 0;
 
   const levelTotal = inPrimary + inSecondary + inTertiary;
   const remainingAfterPrimary = Math.max(0, stillInSchool - inPrimary);
   const remainingAfterSecondary = Math.max(0, remainingAfterPrimary - inSecondary);
+
+  // When numberStillInSchool is 0 (or empty), level fields are not needed
+  const noOneInSchool = f.numberOfSiblings !== "" && stillInSchool === 0;
 
   const schoolExceedsSiblings =
     f.numberStillInSchool !== "" && f.numberOfSiblings !== "" &&
     stillInSchool > totalSiblings;
 
   const levelExceedsSchool =
-    f.numberStillInSchool !== "" && levelTotal > stillInSchool;
+    !noOneInSchool && f.numberStillInSchool !== "" && levelTotal > stillInSchool;
 
   const errorClass = "border-red-400 focus:border-red-500";
   const hintClass = "text-xs font-normal text-red-500 mt-1";
+
+  // When numberOfSiblings is entered, default numberStillInSchool to "0" if empty
+  const handleSiblingsChange = (value: string) => {
+    updateFamily({ numberOfSiblings: value });
+    if (f.numberStillInSchool === "") {
+      updateFamily({ numberStillInSchool: "0" });
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -79,7 +90,7 @@ function SiblingsSection() {
             min="0"
             className={inputClass}
             value={f.numberOfSiblings}
-            onChange={(e) => updateFamily({ numberOfSiblings: e.target.value })}
+            onChange={(e) => handleSiblingsChange(e.target.value)}
           />
         </div>
         <div className="space-y-2">
@@ -100,9 +111,9 @@ function SiblingsSection() {
       </div>
 
       <div className="border border-slate-100 bg-slate-50/70 p-6">
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-3">
           <p className="text-sm font-medium text-slate-700">Siblings Still in School by Level</p>
-          {f.numberStillInSchool !== "" && (
+          {!noOneInSchool && f.numberStillInSchool !== "" && (
             <span className={cn(
               "text-xs font-normal px-2 py-1 border",
               levelExceedsSchool
@@ -115,23 +126,32 @@ function SiblingsSection() {
             </span>
           )}
         </div>
-        {levelExceedsSchool && (
-          <p className={cn(hintClass, "mb-4")}>
-            Total across levels ({levelTotal}) exceeds siblings still in school ({stillInSchool}).
+
+        {noOneInSchool ? (
+          <p className="text-xs font-normal text-slate-400 mb-4">
+            No siblings are currently in school — the level breakdown defaults to 0. You can leave these blank.
           </p>
+        ) : (
+          levelExceedsSchool && (
+            <p className={cn(hintClass, "mb-4")}>
+              Total across levels ({levelTotal}) exceeds siblings still in school ({stillInSchool}).
+            </p>
+          )
         )}
-        <div className="grid md:grid-cols-3 gap-6">
+
+        <div className={cn("grid md:grid-cols-3 gap-6", noOneInSchool && "opacity-40 pointer-events-none")}>
           <div className="space-y-2">
             <label className={labelClass}>Primary</label>
             <Input
               type="number"
               min="0"
               max={stillInSchool}
-              className={cn(inputClass, inPrimary > stillInSchool && errorClass)}
-              value={f.siblingsInPrimary}
+              className={cn(inputClass, !noOneInSchool && inPrimary > stillInSchool && errorClass)}
+              value={noOneInSchool ? "0" : f.siblingsInPrimary}
               onChange={(e) => updateFamily({ siblingsInPrimary: e.target.value })}
+              disabled={noOneInSchool}
             />
-            {f.numberStillInSchool !== "" && (
+            {!noOneInSchool && f.numberStillInSchool !== "" && (
               <p className="text-[10px] font-normal text-slate-400">Max {stillInSchool}</p>
             )}
           </div>
@@ -141,11 +161,12 @@ function SiblingsSection() {
               type="number"
               min="0"
               max={remainingAfterPrimary}
-              className={cn(inputClass, inSecondary > remainingAfterPrimary && errorClass)}
-              value={f.siblingsInSecondary}
+              className={cn(inputClass, !noOneInSchool && inSecondary > remainingAfterPrimary && errorClass)}
+              value={noOneInSchool ? "0" : f.siblingsInSecondary}
               onChange={(e) => updateFamily({ siblingsInSecondary: e.target.value })}
+              disabled={noOneInSchool}
             />
-            {f.numberStillInSchool !== "" && (
+            {!noOneInSchool && f.numberStillInSchool !== "" && (
               <p className="text-[10px] font-normal text-slate-400">Max {remainingAfterPrimary} remaining</p>
             )}
           </div>
@@ -155,11 +176,12 @@ function SiblingsSection() {
               type="number"
               min="0"
               max={remainingAfterSecondary}
-              className={cn(inputClass, inTertiary > remainingAfterSecondary && errorClass)}
-              value={f.siblingsInTertiary}
+              className={cn(inputClass, !noOneInSchool && inTertiary > remainingAfterSecondary && errorClass)}
+              value={noOneInSchool ? "0" : f.siblingsInTertiary}
               onChange={(e) => updateFamily({ siblingsInTertiary: e.target.value })}
+              disabled={noOneInSchool}
             />
-            {f.numberStillInSchool !== "" && (
+            {!noOneInSchool && f.numberStillInSchool !== "" && (
               <p className="text-[10px] font-normal text-slate-400">Max {remainingAfterSecondary} remaining</p>
             )}
           </div>

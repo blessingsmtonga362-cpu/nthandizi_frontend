@@ -67,7 +67,7 @@ function Field({ label, value }: { label: string; value?: string | null }) {
 
 export default function Step4() {
   const { data, setStep, setReviewVisited, setDeclarationAccepted } = useApplicationStore();
-  const { personal: p, family: f, education: e, academics: a, payment: pay } = data;
+  const { personal: p, family: f, education: e, payment: pay } = data;
 
   useEffect(() => {
     setReviewVisited(true);
@@ -194,10 +194,10 @@ export default function Step4() {
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3">Siblings</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
             <Field label="Number of Siblings" value={f.numberOfSiblings} />
-            <Field label="Number Still in School" value={f.numberStillInSchool} />
-            <Field label="Primary" value={f.siblingsInPrimary} />
-            <Field label="Secondary" value={f.siblingsInSecondary} />
-            <Field label="Tertiary" value={f.siblingsInTertiary} />
+            <Field label="Number Still in School" value={f.numberStillInSchool || "0"} />
+            <Field label="In Primary" value={f.siblingsInPrimary || "0"} />
+            <Field label="In Secondary" value={f.siblingsInSecondary || "0"} />
+            <Field label="In Tertiary" value={f.siblingsInTertiary || "0"} />
           </div>
         </div>
       </ReviewCard>
@@ -205,15 +205,6 @@ export default function Step4() {
       {/* Education */}
       <ReviewCard title="Education Background" onEdit={() => setStep(3)}>
         <div className="space-y-6">
-          <div>
-            <p className="text-[10px] font-black text-brand-blue uppercase tracking-widest mb-3">current academics</p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              <Field label="Program of Study" value={a.programOfStudy} />
-              <Field label="Department" value={a.department} />
-              <Field label="Year of Study" value={a.yearOfStudy} />
-            </div>
-          </div>
-
           {(["primary", "secondary", "tertiary"] as const).map((lvl) => (
             <div key={lvl}>
               <p className={cn("text-[10px] font-black uppercase tracking-widest mb-3",
