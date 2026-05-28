@@ -66,7 +66,8 @@ function getFamilyFields(family: FamilyData): unknown[] {
   // Siblings-by-level is considered complete only when the total allocated
   // across levels exactly equals the number still in school.
   // If the student has 0 siblings, the level allocation is not required.
-
+  // If the student hasn't touched the siblings section yet, exclude it from
+  // the required fields so it doesn't block the section from going green.
   const totalSiblings = parseInt(family.numberOfSiblings) || 0;
   const stillInSchool = parseInt(family.numberStillInSchool) || 0;
   const levelTotal =
@@ -74,15 +75,17 @@ function getFamilyFields(family: FamilyData): unknown[] {
     (parseInt(family.siblingsInSecondary) || 0) +
     (parseInt(family.siblingsInTertiary) || 0);
 
- 
+  // Build the siblings fields only when the student has started the section.
+  // This prevents empty siblings fields from blocking the family section green state.
   let siblingFields: unknown[];
   if (family.numberOfSiblings === "") {
-    
+    // Not started — exclude siblings entirely from the required count
     siblingFields = [];
   } else if (totalSiblings === 0) {
+    // Has 0 siblings — only numberOfSiblings is needed, nothing to distribute
     siblingFields = [family.numberOfSiblings];
   } else {
-    
+    // Has siblings — require numberStillInSchool and full level allocation
     const levelAllocationComplete =
       family.numberStillInSchool !== "" && levelTotal === stillInSchool
         ? "allocated"
