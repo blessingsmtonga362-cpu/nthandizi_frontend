@@ -61,21 +61,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen" style={{ backgroundColor: "#FAF9F7" }}>
 
-      {/* ── SIDEBAR ── */}
+      {/* This part is the sidebar */}
       <motion.aside
         animate={{ width: expanded ? EXPANDED_W : COLLAPSED_W }}
         transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
         className="hidden lg:flex flex-col h-screen sticky top-0 left-0 overflow-hidden shrink-0 border-r border-[#E8E4DE] shadow-sm z-50"
         style={{ backgroundColor: "#FAF9F7" }}
       >
-        {/* Logo area — h-16 matches header */}
+        {/* Logo area do not change the h-16 matches it is matching the header ubwino wake sutusinthilana Code */}
         <div className="flex items-center h-16 px-4 shrink-0 justify-between">
           <button
             onClick={() => !expanded && setExpanded(true)}
             tabIndex={!expanded ? 0 : -1}
             className="focus:outline-none shrink-0"
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* the mthandizi.png image */}
             <img src="/mthandizi.png" alt="Mthandizi" className="h-9 w-auto object-contain" />
           </button>
 
@@ -97,7 +97,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </AnimatePresence>
         </div>
 
-        {/* Nav items */}
+        {/* These are the Navigation items */}
         <nav className="flex-1 flex flex-col gap-1 px-3 pt-6">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
@@ -112,7 +112,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   isActive ? "bg-brand-blue/10" : "hover:bg-brand-blue/5"
                 )}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                
                 <img
                   src={item.img}
                   alt={item.label}
@@ -147,9 +147,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </nav>
       </motion.aside>
 
-      {/* ── MAIN CONTENT ── */}
+     
       <main className="relative flex-1 min-w-0">
-        {/* Header */}
+        {/* This is the Header part from here */}
         <header
           className="sticky top-0 z-40 h-16 shrink-0 border-b border-[#E8E4DE] px-4 sm:px-6"
           style={{ backgroundColor: "#FAF9F7" }}
@@ -157,7 +157,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="flex h-full w-full items-center justify-between gap-4">
             <div className="flex min-w-0 flex-1 items-center gap-3">
               <div className="hidden lg:flex items-center gap-3 min-w-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+               
                 <img src="/UnimaLogo.png" alt="UNIMA" className="h-9 w-auto shrink-0 object-contain" />
                 <div className="h-6 w-px shrink-0 bg-slate-200" />
                 <span className="font-display font-normal text-slate-500 text-sm tracking-tight truncate">
@@ -165,7 +165,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </span>
               </div>
               <div className="flex lg:hidden items-center min-w-0">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                
                 <img src="/mthandizi.png" alt="Mthandizi" className="h-8 w-auto shrink-0 object-contain" />
               </div>
             </div>
@@ -176,7 +176,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 className="flex h-9 w-9 items-center justify-center focus:outline-none group"
                 title={displayName}
               >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
+                
                 <img
                   src="/profile.png"
                   alt="Profile"
