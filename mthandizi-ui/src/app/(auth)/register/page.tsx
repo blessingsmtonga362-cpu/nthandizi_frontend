@@ -18,7 +18,6 @@ export default function RegisterPage() {
   const [formData, setFormData] = useState({
     firstName: "",
     surname: "",
-    registrationNumber: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -56,7 +55,6 @@ export default function RegisterPage() {
   const isFormValid = () =>
     formData.firstName.trim() &&
     formData.surname.trim() &&
-    formData.registrationNumber.trim() &&
     formData.email.endsWith("@unima.ac.mw") &&
     formData.password.length >= 8 &&
     isPasswordStrong &&
@@ -76,12 +74,11 @@ export default function RegisterPage() {
       await registerUser({
         firstName: formData.firstName.trim(),
         lastName: formData.surname.trim(),
-        registrationNumber: formData.registrationNumber.trim(),
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
         university: "unima",
       });
-      // ✅ FIX: Redirect to verify (not verify-otp) with email parameter
+     
       router.push(`/verify?email=${encodeURIComponent(formData.email)}`);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
@@ -118,7 +115,7 @@ export default function RegisterPage() {
         </div>
       </div>
 
-      {/* ── Right panel — form ── */}
+      {/* Right panel form */}
       <div className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-20 py-12 overflow-y-auto" style={{ backgroundColor: "#FAF9F7" }}>
         {/* Go back */}
         <Link
@@ -168,19 +165,6 @@ export default function RegisterPage() {
                   placeholder="Surname"
                   value={formData.surname}
                   onChange={(e) => setFormData({ ...formData, surname: e.target.value })}
-                  className={fieldClass}
-                />
-              </div>
-
-              {/* Registration Number */}
-              <div className="space-y-2 md:col-span-2">
-                <label className="text-sm font-medium text-slate-700 block">Registration Number</label>
-                <Input
-                  required
-                  autoComplete="off"
-                  placeholder="e.g. BSC-COM-14-21"
-                  value={formData.registrationNumber}
-                  onChange={(e) => setFormData({ ...formData, registrationNumber: e.target.value })}
                   className={fieldClass}
                 />
               </div>

@@ -435,7 +435,6 @@ export interface RegisterPayload {
   lastName: string;
   email: string;
   password: string;
-  registrationNumber: string;
   university: string;
 }
 
