@@ -76,7 +76,6 @@ export default function RegisterPage() {
         lastName: formData.surname.trim(),
         email: formData.email.trim().toLowerCase(),
         password: formData.password,
-        university: "unima",
       });
      
       router.push(`/verify?email=${encodeURIComponent(formData.email)}`);
@@ -91,9 +90,9 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left panel  photo */}
+      {/* ── Left panel — photo ── */}
       <div className="hidden lg:block relative w-1/2 overflow-hidden">
-        
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/3-hanz.jpg"
           alt="Background"
@@ -117,7 +116,7 @@ export default function RegisterPage() {
 
       {/* Right panel form */}
       <div className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-20 py-12 overflow-y-auto" style={{ backgroundColor: "#FAF9F7" }}>
-       
+        {/* Go back */}
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-brand-blue transition-colors mb-10 self-start"

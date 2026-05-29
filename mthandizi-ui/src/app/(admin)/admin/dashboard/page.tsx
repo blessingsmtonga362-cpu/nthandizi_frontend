@@ -266,7 +266,7 @@ export default function AdminDashboard() {
                     onClick={() => void openApplicant(row.id)}
                     className="hover:bg-slate-50 transition-colors cursor-pointer"
                   >
-                    <td className="px-6 py-4 text-sm font-normal text-slate-600">{i + 1}</td>
+                    <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.rank ?? i + 1}</td>
                     <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.name}</td>
                     <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.program}</td>
                     <td className="px-6 py-4 text-center">
@@ -308,7 +308,7 @@ export default function AdminDashboard() {
               transition={{ type: "spring", damping: 25, stiffness: 200 }}
               className="fixed right-0 top-0 bottom-0 z-30 flex flex-col w-full max-w-2xl border-l border-slate-200 bg-white pt-16 shadow-[-8px_0_48px_-8px_rgba(15,23,42,0.22)]"
             >
-             
+              {/* Panel header */}
               <div className="shrink-0 border-b border-slate-200 bg-white px-6 py-5 flex items-start justify-between gap-4">
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.25em] text-brand-blue">Applicant Details</p>
@@ -326,7 +326,7 @@ export default function AdminDashboard() {
                 </button>
               </div>
 
-              
+              {/* Scrollable body */}
               <div className="flex-1 overflow-y-auto">
                 <ApplicantDetailsPanel
                   selectedApplicantId={selectedApplicantId}

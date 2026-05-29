@@ -1,11 +1,14 @@
 "use client";
 
+import { ExternalLink, FileText } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import type {
   AdminApplicantDetailsResponse,
   AdminApplicantStatus,
   AdminFamilyDetails,
 } from "@/lib/api";
+import { getAssetUrl } from "@/lib/api";
+import { cn } from "@/lib/utils";
 
 function formatValue(value: string | number | null | undefined) {
   if (value === null || value === undefined) return "Not provided";
@@ -155,6 +158,14 @@ export function ApplicantDetailsPanel({
                 { label: "Review Comment", value: formatValue(details.applicant.reviewComments) },
               ]}
             />
+            {details.applicant.scoreFlagReason && (
+              <div className="mt-4 border border-amber-200 bg-amber-50 px-4 py-3 space-y-1">
+                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700">System flag</p>
+                <p className="text-xs font-normal text-amber-800 leading-relaxed">
+                  {details.applicant.scoreFlagReason}
+                </p>
+              </div>
+            )}
           </SectionCard>
 
           <SectionCard title="Personal Details">
@@ -177,6 +188,52 @@ export function ApplicantDetailsPanel({
               <FamilyDetailsSection family={family} />
             </SectionCard>
           )}
+
+          {/* Consent Form Viewer */}
+          <SectionCard title="Consent Form">
+            {family?.consentFormUrl ? (
+              <div className="space-y-3">
+                <p className="text-xs font-normal text-slate-500">
+                  The applicant has uploaded a consent form. Review it before making a decision.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <a
+                    href={getAssetUrl(family.consentFormUrl) ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      "inline-flex items-center gap-2 border border-brand-blue bg-white px-4 py-2.5",
+                      "text-xs font-medium text-brand-blue transition-colors",
+                      "hover:bg-brand-blue hover:text-white",
+                    )}
+                  >
+                    <FileText size={14} />
+                    Open Consent Form
+                    <ExternalLink size={12} />
+                  </a>
+                </div>
+                {/* Inline PDF preview if it's a PDF URL */}
+                {family.consentFormUrl.toLowerCase().endsWith(".pdf") && (
+                  <div className="border border-slate-200 overflow-hidden">
+                    <div className="border-b border-slate-100 bg-slate-50 px-4 py-2 flex items-center gap-2">
+                      <FileText size={13} className="text-slate-400" />
+                      <span className="text-xs font-medium text-slate-500">Consent Form Preview</span>
+                    </div>
+                    <iframe
+                      src={`${getAssetUrl(family.consentFormUrl)}#toolbar=0&navpanes=0`}
+                      className="w-full h-[480px]"
+                      title="Consent Form"
+                    />
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex items-center gap-3 border border-dashed border-slate-200 bg-slate-50 px-4 py-4">
+                <FileText size={16} className="text-slate-300 shrink-0" />
+                <p className="text-sm font-normal text-slate-400">No consent form uploaded.</p>
+              </div>
+            )}
+          </SectionCard>
 
           <SectionCard title="Academic Details">
             <DetailGrid

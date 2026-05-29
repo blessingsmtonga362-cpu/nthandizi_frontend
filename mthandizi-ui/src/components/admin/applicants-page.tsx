@@ -9,9 +9,11 @@ import {
   getAdminApplicantDetails,
   getAdminDashboardStats,
   getAllAdminApplicants,
+  getApplicantScoreBreakdown,
   reviewAdminApplicant,
   type AdminApplicantDetailsResponse,
   type AdminApplicantStatus,
+  type ApplicantScoreBreakdown,
   type PriorityStudent,
 } from "@/lib/api";
 import { toastSuccess, toastError } from "@/lib/toast";
@@ -60,6 +62,7 @@ export default function ApplicantsPage() {
   const [reviewStatus, setReviewStatus] = useState<Extract<AdminApplicantStatus, "approved" | "flagged">>("approved");
   const [reviewComments, setReviewComments] = useState("");
   const [reviewSubmitting, setReviewSubmitting] = useState(false);
+  const [scoreBreakdown, setScoreBreakdown] = useState<ApplicantScoreBreakdown | null>(null);
 
   useEffect(() => {
     const run = async () => {
@@ -91,13 +94,7 @@ export default function ApplicantsPage() {
   }, [applicants]);
 
   const rankedApplicants = useMemo(
-    () =>
-      [...applicants]
-        .sort((a, b) => b.score - a.score)
-        .map((row, index) => ({
-          ...row,
-          rank: index + 1,
-        })),
+    () => [...applicants].sort((a, b) => b.score - a.score),
     [applicants],
   );
 
@@ -114,15 +111,26 @@ export default function ApplicantsPage() {
     setSelectedApplicantId(userId);
     setDetailsLoading(true);
     setDetailsError("");
+    setScoreBreakdown(null);
 
     try {
-      const response = await getAdminApplicantDetails(userId);
-      setDetails(response);
-      setReviewStatus(response.applicant.status === "flagged" ? "flagged" : "approved");
-      setReviewComments(response.applicant.reviewComments ?? "");
-    } catch (err) {
-      setDetails(null);
-      setDetailsError(err instanceof Error ? err.message : "Failed to load applicant details.");
+      const [response, breakdown] = await Promise.allSettled([
+        getAdminApplicantDetails(userId),
+        getApplicantScoreBreakdown(userId),
+      ]);
+
+      if (response.status === "fulfilled") {
+        setDetails(response.value);
+        setReviewStatus(response.value.applicant.status === "flagged" ? "flagged" : "approved");
+        setReviewComments(response.value.applicant.reviewComments ?? "");
+      } else {
+        setDetails(null);
+        setDetailsError(response.reason instanceof Error ? response.reason.message : "Failed to load applicant details.");
+      }
+
+      if (breakdown.status === "fulfilled") {
+        setScoreBreakdown(breakdown.value);
+      }
     } finally {
       setDetailsLoading(false);
     }
@@ -134,6 +142,7 @@ export default function ApplicantsPage() {
     setDetailsError("");
     setReviewComments("");
     setReviewStatus("approved");
+    setScoreBreakdown(null);
   };
 
   const handleReviewSubmit = async () => {
@@ -228,11 +237,13 @@ export default function ApplicantsPage() {
             aria-label="Filter by rank"
           >
             <option value="all">All ranks</option>
-            {rankedApplicants.map((row) => (
-              <option key={row.id} value={String(row.rank)}>
-                Rank {row.rank}
-              </option>
-            ))}
+            {rankedApplicants
+              .filter((row) => row.rank != null)
+              .map((row) => (
+                <option key={row.id} value={String(row.rank)}>
+                  Rank {row.rank}
+                </option>
+              ))}
           </select>
         </div>
 
@@ -273,7 +284,7 @@ export default function ApplicantsPage() {
               ) : (
                 filteredApplicants.map((row) => (
                   <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.rank}</td>
+                    <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.rank ?? "—"}</td>
                     <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.name}</td>
                     <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.registrationNumber || row.id}</td>
                     <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.program}</td>
@@ -363,58 +374,139 @@ export default function ApplicantsPage() {
                     <div className="border-b border-slate-100 px-5 py-4">
                       <h3 className="text-sm font-display font-bold text-brand-blue">Review Decision</h3>
                     </div>
-                    <div className="p-5 space-y-5">
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setReviewStatus("approved")}
-                          className={cn(
-                            "border px-5 py-3 text-sm font-normal transition-all duration-150 hover:scale-[1.04]",
-                            reviewStatus === "approved"
-                              ? "border-emerald-300 bg-emerald-100 text-emerald-700"
-                              : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700",
+                    <div className="p-5 space-y-6">
+
+                      {/* ── Need Index Score Breakdown ── */}
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Need Index Breakdown</p>
+                          {scoreBreakdown && (
+                            <div className={cn(
+                              "inline-flex items-center gap-1.5 border px-3 py-1 text-xs font-bold",
+                              scoreBreakdown.totalScore > 80
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                                : scoreBreakdown.totalScore > 60
+                                  ? "border-amber-200 bg-amber-50 text-amber-700"
+                                  : "border-red-200 bg-red-50 text-red-700",
+                            )}>
+                              Total: {scoreBreakdown.totalScore} / {scoreBreakdown.maximumTotalScore}
+                            </div>
                           )}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setReviewStatus("flagged")}
-                          className={cn(
-                            "border px-5 py-3 text-sm font-normal transition-all duration-150 hover:scale-[1.04]",
-                            reviewStatus === "flagged"
-                              ? "border-red-300 bg-red-100 text-red-700"
-                              : "border-slate-200 bg-white text-slate-500 hover:border-red-300 hover:bg-red-50 hover:text-red-600",
-                          )}
-                        >
-                          Flag
-                        </button>
+                        </div>
+
+                        {scoreBreakdown ? (
+                          <div className="space-y-2">
+                            {(
+                              [
+                                { label: "Academic Performance", key: "academicScore", color: "bg-blue-500" },
+                                { label: "Family Background", key: "familyBackgroundScore", color: "bg-violet-500" },
+                                { label: "Education Background", key: "educationBackgroundScore", color: "bg-teal-500" },
+                                { label: "Integrity Check", key: "integrityCheckScore", color: "bg-amber-500" },
+                                { label: "Disability", key: "disabilityScore", color: "bg-rose-500" },
+                              ] as const
+                            ).map(({ label, key, color }) => {
+                              const component = scoreBreakdown[key];
+                              const pct = component.maximumScore > 0
+                                ? Math.round((component.score / component.maximumScore) * 100)
+                                : 0;
+                              return (
+                                <div key={key} className="space-y-1">
+                                  <div className="flex items-center justify-between text-xs">
+                                    <span className="font-medium text-slate-600">{label}</span>
+                                    <span className="font-bold text-slate-700 tabular-nums">
+                                      {component.score}
+                                      <span className="font-normal text-slate-400"> / {component.maximumScore}</span>
+                                    </span>
+                                  </div>
+                                  <div className="h-1.5 w-full bg-slate-100 overflow-hidden">
+                                    <div
+                                      className={cn("h-full transition-all duration-500", color)}
+                                      style={{ width: `${pct}%` }}
+                                    />
+                                  </div>
+                                </div>
+                              );
+                            })}
+
+                            {/* Flag reasons */}
+                            {scoreBreakdown.isFlagged && scoreBreakdown.flagReasons.length > 0 && (
+                              <div className="mt-3 border border-amber-200 bg-amber-50 px-4 py-3 space-y-1">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-amber-700">Score flags</p>
+                                {scoreBreakdown.flagReasons.map((reason, i) => (
+                                  <p key={i} className="text-xs font-normal text-amber-800 leading-relaxed">
+                                    • {reason}
+                                  </p>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-xs text-slate-400 border border-slate-100 bg-slate-50 px-4 py-3">
+                            <Loader2 size={12} className="animate-spin shrink-0" />
+                            Loading score breakdown…
+                          </div>
+                        )}
                       </div>
 
-                      <div className="space-y-2">
-                        <label className="text-xs font-normal text-slate-500">
-                          Reviewer Comment {reviewStatus === "flagged" ? "(Required)" : "(Optional)"}
-                        </label>
-                        <textarea
-                          value={reviewComments}
-                          onChange={(e) => setReviewComments(e.target.value)}
-                          rows={4}
-                          className="w-full border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-600 outline-none transition-colors focus:border-brand-blue"
-                          placeholder="Record the decision context for this application."
-                        />
+                      {/* ── Divider ── */}
+                      <div className="border-t border-slate-100" />
+
+                      {/* ── Decision buttons ── */}
+                      <div className="space-y-4">
+                        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">Decision</p>
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setReviewStatus("approved")}
+                            className={cn(
+                              "border px-5 py-3 text-sm font-normal transition-all duration-150 hover:scale-[1.04]",
+                              reviewStatus === "approved"
+                                ? "border-emerald-300 bg-emerald-100 text-emerald-700"
+                                : "border-slate-200 bg-white text-slate-500 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700",
+                            )}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setReviewStatus("flagged")}
+                            className={cn(
+                              "border px-5 py-3 text-sm font-normal transition-all duration-150 hover:scale-[1.04]",
+                              reviewStatus === "flagged"
+                                ? "border-red-300 bg-red-100 text-red-700"
+                                : "border-slate-200 bg-white text-slate-500 hover:border-red-300 hover:bg-red-50 hover:text-red-600",
+                            )}
+                          >
+                            Flag
+                          </button>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-xs font-normal text-slate-500">
+                            Reviewer Comment {reviewStatus === "flagged" ? "(Required)" : "(Optional)"}
+                          </label>
+                          <textarea
+                            value={reviewComments}
+                            onChange={(e) => setReviewComments(e.target.value)}
+                            rows={4}
+                            className="w-full border border-slate-200 bg-white px-4 py-3 text-sm font-normal text-slate-600 outline-none transition-colors focus:border-brand-blue"
+                            placeholder="Record the decision context for this application."
+                          />
+                        </div>
+
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            type="button"
+                            onClick={() => void handleReviewSubmit()}
+                            disabled={reviewSubmitting}
+                            className="inline-flex items-center gap-2 bg-brand-blue px-5 py-3 text-xs font-normal text-white transition-all hover:bg-brand-blueDark hover:scale-[1.03] disabled:opacity-60"
+                          >
+                            {reviewSubmitting && <Loader2 size={14} className="animate-spin" />}
+                            Save Review
+                          </button>
+                        </div>
                       </div>
 
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          type="button"
-                          onClick={() => void handleReviewSubmit()}
-                          disabled={reviewSubmitting}
-                          className="inline-flex items-center gap-2 bg-brand-blue px-5 py-3 text-xs font-normal text-white transition-all hover:bg-brand-blueDark hover:scale-[1.03] disabled:opacity-60"
-                        >
-                          {reviewSubmitting && <Loader2 size={14} className="animate-spin" />}
-                          Save Review
-                        </button>
-                      </div>
                     </div>
                   </section>
                 )}

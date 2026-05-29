@@ -1,223 +1,296 @@
+// app/(auth)/register/page.tsx
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { KeyRound, LogOut, ChevronLeft } from "lucide-react";
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { Eye, EyeOff, AlertCircle, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/hooks/use-auth";
-import { logout, getStoredUser, type AuthUser } from "@/lib/api";
-import { clearOfflinePersistence } from "@/hooks/use-offline-persistence";
+import { registerUser } from "@/lib/api";
 
-const EXPANDED_W = 256;
-const COLLAPSED_W = 72;
-
-const navItems = [
-  { label: "Dashboard",     href: "/admin/dashboard",     img: "/myhome.png" },
-  { label: "Applicants",    href: "/admin/applicants",    img: "/apply.png" },
-  { label: "Approved",      href: "/admin/approved",      img: "/approved.png" },
-  { label: "Flagged",       href: "/admin/flagged",       img: "/flagged.png" },
-  { label: "Sponsors",      href: "/admin/sponsors",      img: "/sponsors.png" },
-  { label: "Notifications", href: "/admin/notifications", img: "/notification.png" },
-];
-
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
+export default function RegisterPage() {
   const router = useRouter();
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [expanded, setExpanded] = useState(true);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const { loading } = useAuth("admin");
+  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [formData, setFormData] = useState({
+    firstName: "",
+    surname: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
+  const [emailError, setEmailError] = useState("");
 
-  const [storedUser, setStoredUser] = useState<AuthUser | null>(null);
-  useEffect(() => {
-    setStoredUser(getStoredUser());
-  }, []);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
+  const handleEmailChange = (value: string) => {
+    setFormData({ ...formData, email: value });
+    if (value.includes("@") && !value.endsWith("@unima.ac.mw")) {
+      setEmailError("Please use your UNIMA email address (@unima.ac.mw)");
+    } else {
+      setEmailError("");
     }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
-  const handleSignOut = async () => {
-    setDropdownOpen(false);
-    await clearOfflinePersistence();
-    await logout();
-    router.push("/login");
   };
 
-  if (loading) return null;
+  const passwordStrength = (pwd: string) => {
+    if (pwd.length === 0) return 0;
+    let strength = 0;
+    if (pwd.length > 7) strength += 1;
+    if (/[A-Z]/.test(pwd)) strength += 1;
+    if (/[0-9]/.test(pwd)) strength += 1;
+    if (/[^A-Za-z0-9]/.test(pwd)) strength += 1;
+    return strength;
+  };
 
-  const displayName = storedUser
-    ? `${storedUser.firstName ?? ""} ${storedUser.lastName ?? ""}`.trim() || "Administrator"
-    : "Administrator";
+  const getStrengthColor = (strength: number) => {
+    if (strength <= 1) return "bg-red-500";
+    if (strength <= 3) return "bg-amber-500";
+    return "bg-emerald-500";
+  };
+
+  const currentStrength = passwordStrength(formData.password);
+  const isPasswordStrong = currentStrength === 4;
+
+  const isFormValid = () =>
+    formData.firstName.trim() &&
+    formData.surname.trim() &&
+    formData.email.endsWith("@unima.ac.mw") &&
+    formData.password.length >= 8 &&
+    isPasswordStrong &&
+    formData.password === formData.confirmPassword &&
+    !emailError;
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formData.password.length < 8 || !isPasswordStrong) {
+      setError("Choose a stronger password: at least 8 characters, including uppercase letters, numbers, and symbols.");
+      return;
+    }
+    if (!isFormValid()) return;
+    setIsLoading(true);
+    setError("");
+    try {
+      await registerUser({
+        firstName: formData.firstName.trim(),
+        lastName: formData.surname.trim(),
+        email: formData.email.trim().toLowerCase(),
+        password: formData.password,
+      });
+     
+      router.push(`/verify?email=${encodeURIComponent(formData.email)}`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Registration failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fieldClass = "h-14 rounded-none border border-slate-300 px-4 font-normal text-slate-800 placeholder:text-slate-400 placeholder:font-light hover:border-brand-blue focus:border-brand-blue transition-colors";
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: "#FAF9F7" }}>
+    <div className="min-h-screen flex">
+      {/* ── Left panel — photo ── */}
+      <div className="hidden lg:block relative w-1/2 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/3-hanz.jpg"
+          alt="Background"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-brand-slate/70" />
 
-      {/* This part is the sidebar */}
-      <motion.aside
-        animate={{ width: expanded ? EXPANDED_W : COLLAPSED_W }}
-        transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-        className="hidden lg:flex flex-col h-screen sticky top-0 left-0 overflow-hidden shrink-0 border-r border-[#E8E4DE] shadow-sm z-50"
-        style={{ backgroundColor: "#FAF9F7" }}
-      >
-        {/* Logo area do not change the h-16 matches it is matching the header ubwino wake sutusinthilana Code */}
-        <div className="flex items-center h-16 px-4 shrink-0 justify-between">
-          <button
-            onClick={() => !expanded && setExpanded(true)}
-            tabIndex={!expanded ? 0 : -1}
-            className="focus:outline-none shrink-0"
-          >
-            {/* the mthandizi.png image */}
-            <img src="/mthandizi.png" alt="Mthandizi" className="h-9 w-auto object-contain" />
-          </button>
-
-          <AnimatePresence initial={false}>
-            {expanded && (
-              <motion.button
-                key="collapse"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                onClick={() => setExpanded(false)}
-                title="Collapse sidebar"
-                className="w-8 h-8 rounded-xl flex items-center justify-center text-slate-400 hover:text-brand-blue hover:bg-brand-blue/5 transition-colors shrink-0"
-              >
-                <ChevronLeft size={18} />
-              </motion.button>
-            )}
-          </AnimatePresence>
+        {/* Animated logo centred on overlay */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <motion.img
+            src="/mthandizi.png"
+            alt="Mthandizi"
+            initial={{ opacity: 0, scale: 0.8, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.9, ease: "easeOut" }}
+            className="h-24 w-auto object-contain brightness-0 invert"
+          />
         </div>
+      </div>
 
-        {/* These are the Navigation items */}
-        <nav className="flex-1 flex flex-col gap-1 px-3 pt-6">
-          {navItems.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                title={!expanded ? item.label : undefined}
-                className={cn(
-                  "flex items-center gap-3 rounded-lg transition-all duration-200 group relative",
-                  expanded ? "px-3 py-3" : "px-0 py-3 justify-center",
-                  isActive ? "bg-brand-blue/10" : "hover:bg-brand-blue/5"
-                )}
-              >
-                
-                <img
-                  src={item.img}
-                  alt={item.label}
-                  className={cn(
-                    "w-6 h-6 object-contain shrink-0 transition-all duration-200",
-                    isActive
-                      ? "[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
-                      : "opacity-50 group-hover:opacity-100 group-hover:[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
-                  )}
+      {/* Right panel form */}
+      <div className="flex-1 flex flex-col justify-center px-8 md:px-16 lg:px-20 py-12 overflow-y-auto" style={{ backgroundColor: "#FAF9F7" }}>
+        {/* Go back */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-brand-blue transition-colors mb-10 self-start"
+        >
+          <ArrowLeft size={16} />
+          Go back
+        </Link>
+
+        <motion.div
+          initial={{ opacity: 0, x: 24 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="max-w-lg w-full"
+        >
+          {/* Heading */}
+          <h1 className="text-4xl font-display font-bold text-brand-slate tracking-tight mb-1">
+            Sign Up
+          </h1>
+          <p className="text-slate-500 font-normal mb-10">
+            Join the Mthandizi student profiling platform.
+          </p>
+
+          <form autoComplete="off" className="space-y-6" onSubmit={handleRegister}>
+            <div className="grid md:grid-cols-2 gap-x-6 gap-y-6">
+
+              {/* First Name */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 block">First Name</label>
+                <Input
+                  required
+                  autoComplete="given-name"
+                  placeholder="First name"
+                  value={formData.firstName}
+                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  className={fieldClass}
                 />
+              </div>
 
-                <AnimatePresence initial={false}>
-                  {expanded && (
-                    <motion.span
-                      key="label"
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{ opacity: 1, width: "auto" }}
-                      exit={{ opacity: 0, width: 0 }}
-                      transition={{ duration: 0.2, ease: "easeInOut" }}
-                      className={cn(
-                        "font-normal tracking-tight text-sm whitespace-nowrap overflow-hidden transition-colors duration-200",
-                        isActive ? "text-brand-blue" : "text-slate-500 group-hover:text-brand-blue"
-                      )}
+              {/* Surname */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 block">Surname</label>
+                <Input
+                  required
+                  autoComplete="family-name"
+                  placeholder="Surname"
+                  value={formData.surname}
+                  onChange={(e) => setFormData({ ...formData, surname: e.target.value })}
+                  className={fieldClass}
+                />
+              </div>
+
+              {/* University Email */}
+              <div className="space-y-2 md:col-span-2">
+                <label className="text-sm font-medium text-slate-700 block">University Email</label>
+                <Input
+                  required
+                  type="email"
+                  autoComplete="email"
+                  placeholder="your@unima.ac.mw"
+                  value={formData.email}
+                  onChange={(e) => handleEmailChange(e.target.value)}
+                  className={cn(fieldClass, emailError ? "border-red-500" : "")}
+                />
+                <AnimatePresence>
+                  {emailError && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="text-red-500 text-xs flex items-center gap-1.5"
                     >
-                      {item.label}
-                    </motion.span>
+                      <AlertCircle className="w-3 h-3 shrink-0" /> {emailError}
+                    </motion.p>
                   )}
                 </AnimatePresence>
-              </Link>
-            );
-          })}
-        </nav>
-      </motion.aside>
-
-     
-      <main className="relative flex-1 min-w-0">
-        {/* This is the Header part from here */}
-        <header
-          className="sticky top-0 z-40 h-16 shrink-0 border-b border-[#E8E4DE] px-4 sm:px-6"
-          style={{ backgroundColor: "#FAF9F7" }}
-        >
-          <div className="flex h-full w-full items-center justify-between gap-4">
-            <div className="flex min-w-0 flex-1 items-center gap-3">
-              <div className="hidden lg:flex items-center gap-3 min-w-0">
-               
-                <img src="/UnimaLogo.png" alt="UNIMA" className="h-9 w-auto shrink-0 object-contain" />
-                <div className="h-6 w-px shrink-0 bg-slate-200" />
-                <span className="font-display font-normal text-slate-500 text-sm tracking-tight truncate">
-                  University of Malawi
-                </span>
               </div>
-              <div className="flex lg:hidden items-center min-w-0">
-                
-                <img src="/mthandizi.png" alt="Mthandizi" className="h-8 w-auto shrink-0 object-contain" />
-              </div>
-            </div>
 
-            <div className="relative shrink-0" ref={dropdownRef}>
-              <button
-                onClick={() => setDropdownOpen((v) => !v)}
-                className="flex h-9 w-9 items-center justify-center focus:outline-none group"
-                title={displayName}
-              >
-                
-                <img
-                  src="/profile.png"
-                  alt="Profile"
-                  className="h-6 w-6 object-contain transition-all duration-200 group-hover:[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
-                />
-              </button>
-
-            {dropdownOpen && (
-              <div
-                className="absolute right-0 mt-2 w-56 rounded-none shadow-xl border border-[#E8E4DE] overflow-hidden z-50 font-sans"
-                style={{ backgroundColor: "#FAF9F7" }}
-              >
-                <div className="px-4 py-3 border-b border-slate-100">
-                  <p className="text-sm font-normal text-brand-slate leading-none truncate">{displayName}</p>
-                  <p className="text-[10px] text-slate-400 font-normal uppercase tracking-wider mt-1">Admin</p>
+              {/* Password */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 block">Password</label>
+                <div className="relative">
+                  <Input
+                    required
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    placeholder="Min. 8 characters"
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className={cn(fieldClass, "pr-12")}
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-blue transition-colors">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
                 </div>
-                <button
-                  onClick={() => setDropdownOpen(false)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-normal text-slate-700 hover:bg-slate-50 transition-colors"
-                >
-                  <KeyRound size={15} className="text-brand-blue" />
-                  Change Password
-                </button>
-                <div className="h-px bg-slate-100" />
-                <button
-                  onClick={handleSignOut}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-sm font-normal text-red-500 hover:bg-red-50 transition-colors"
-                >
-                  <LogOut size={15} />
-                  Sign Out
-                </button>
+                {formData.password.length > 0 && !isPasswordStrong && (
+                  <p className="text-xs text-red-500">Needs 8+ chars, uppercase, numbers and symbols.</p>
+                )}
+                <div className="flex gap-1">
+                  {[1, 2, 3, 4].map((step) => (
+                    <div key={step} className={cn("h-1 w-full transition-colors duration-300", currentStrength >= step ? getStrengthColor(currentStrength) : "bg-slate-200")} />
+                  ))}
+                </div>
               </div>
-            )}
-            </div>
-          </div>
-        </header>
 
-        <div className="p-8 max-w-7xl mx-auto">
-          {children}
-        </div>
-      </main>
+              {/* Confirm Password */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-700 block">Confirm Password</label>
+                <div className="relative">
+                  <Input
+                    required
+                    type={showPassword ? "text" : "password"}
+                    autoComplete="new-password"
+                    placeholder="Repeat password"
+                    value={formData.confirmPassword}
+                    onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                    className={cn(fieldClass, "pr-12", formData.confirmPassword && formData.password !== formData.confirmPassword ? "border-red-500" : "")}
+                  />
+                  <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-brand-blue transition-colors">
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <AnimatePresence>
+                  {formData.confirmPassword && formData.password !== formData.confirmPassword && (
+                    <motion.p
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -8 }}
+                      className="text-red-500 text-xs flex items-center gap-1.5"
+                    >
+                      <AlertCircle className="w-3 h-3 shrink-0" /> Passwords do not match
+                    </motion.p>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+
+            {/* API error */}
+            <AnimatePresence>
+              {error && (
+                <motion.p
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -8 }}
+                  className="text-red-500 text-xs flex items-center gap-1.5"
+                >
+                  <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {error}
+                </motion.p>
+              )}
+            </AnimatePresence>
+
+            <button
+              type="submit"
+              disabled={!isFormValid() || isLoading}
+              className="w-full h-14 bg-brand-slate text-white font-bold text-sm tracking-wide hover:bg-brand-blue hover:scale-[1.01] transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-3"
+            >
+              {isLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+                  Creating Account...
+                </>
+              ) : "Create Account"}
+            </button>
+
+            <p className="text-sm text-slate-500">
+              Already have an account?{" "}
+              <Link href="/login" className="text-brand-blue font-bold hover:underline">
+                Sign In
+              </Link>
+            </p>
+          </form>
+        </motion.div>
+      </div>
     </div>
   );
 }
+
+
