@@ -20,6 +20,7 @@ const navItems = [
   { label: "Approved",      href: "/admin/approved",      img: "/approved.png" },
   { label: "Flagged",       href: "/admin/flagged",       img: "/flagged.png" },
   { label: "Sponsors",      href: "/admin/sponsors",      img: "/sponsors.png" },
+  { label: "Disbursement",  href: "/admin/disbursement",  img: "/disbursement.png" },
   { label: "Notifications", href: "/admin/notifications", img: "/notification.png" },
 ];
 
