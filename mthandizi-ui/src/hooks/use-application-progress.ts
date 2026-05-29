@@ -18,7 +18,6 @@ type DraftSnapshot = Partial<ApplicationData> & {
   personal?: ApplicationData["personal"];
   family?: ApplicationData["family"];
   education?: ApplicationData["education"];
-  academics?: ApplicationData["academics"];
   payment?: ApplicationData["payment"];
   reviewVisited?: boolean;
   declarationAccepted?: boolean;
@@ -37,7 +36,6 @@ function mergeDraftIntoData(base: ApplicationData, draft: DraftSnapshot): Applic
           tertiary: { ...base.education.tertiary, ...draft.education.tertiary },
         }
       : base.education,
-    academics: draft.academics ? { ...base.academics, ...draft.academics } : base.academics,
     payment: draft.payment ? { ...base.payment, ...draft.payment } : base.payment,
     currentStep: draft.currentStep ?? base.currentStep,
     reviewVisited: draft.reviewVisited ?? base.reviewVisited,
@@ -69,7 +67,7 @@ export function useApplicationProgress() {
   }, [refreshDraft]);
 
   useEffect(() => {
-    const onFocus = () => void refreshDraft();
+    const onFocus = () => { refreshDraft().catch(() => {}); };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [refreshDraft]);

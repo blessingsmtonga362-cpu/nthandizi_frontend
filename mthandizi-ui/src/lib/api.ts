@@ -122,6 +122,7 @@ export interface PriorityStudent {
   registrationNumber?: string;
   program: string;
   score: number;
+  rank: number | null;
   status: AdminApplicantStatus;
 }
 
@@ -133,6 +134,11 @@ export interface AdminApplicantProfile {
   registrationNumber: string;
   status: AdminApplicantStatus;
   reviewComments: string | null;
+  score?: number | null;
+  rank?: number | null;
+  overallPercentage?: number | null;
+  scoreFlagged?: boolean | null;
+  scoreFlagReason?: string | null;
 }
 
 export interface AdminApplicantListItem extends AdminApplicantProfile {
@@ -247,6 +253,7 @@ export interface AdminFamilyDetails {
   siblingsInPrimary?: number | string;
   siblingsInSecondary?: number | string;
   siblingsInTertiary?: number | string;
+  consentFormUrl?: string | null;
 }
 
 export interface AdminEducationRecord {
@@ -435,7 +442,6 @@ export interface RegisterPayload {
   lastName: string;
   email: string;
   password: string;
-  university: string;
 }
 
 export async function registerUser(payload: RegisterPayload): Promise<{ message: string }> {
@@ -522,7 +528,8 @@ export async function getApplicationStatus(): Promise<ApplicationStatus> {
 }
 
 export async function getStudentNotifications(): Promise<Notification[]> {
-  return request<Notification[]>("/notifications");
+  const res = await request<{ success: boolean; data: Notification[] }>("/notifications");
+  return res.data ?? [];
 }
 
 export async function markNotificationRead(id: string | number): Promise<void> {
@@ -558,7 +565,8 @@ export async function getAdminDashboardStats(): Promise<DashboardStats> {
 }
 
 export async function getAdminNotifications(): Promise<Notification[]> {
-  return request<Notification[]>("/admin/notifications");
+  const res = await request<{ success: boolean; data: Notification[] }>("/admin/notifications");
+  return res.data ?? [];
 }
 
 export async function markAdminNotificationRead(id: string | number): Promise<void> {
@@ -571,6 +579,36 @@ export async function markAllAdminNotificationsRead(): Promise<void> {
 
 export async function clearAllAdminNotifications(): Promise<void> {
   return request<void>("/admin/notifications", { method: "DELETE" });
+}
+
+export interface ApplicantScoreComponent {
+  score: number;
+  maximumScore: number;
+  percentage: number;
+}
+
+export interface ApplicantScoreBreakdown {
+  userId: string;
+  firstName: string;
+  lastName: string;
+  registrationNumber: string;
+  academicScore: ApplicantScoreComponent;
+  familyBackgroundScore: ApplicantScoreComponent;
+  educationBackgroundScore: ApplicantScoreComponent;
+  integrityCheckScore: ApplicantScoreComponent;
+  disabilityScore: ApplicantScoreComponent;
+  totalScore: number;
+  maximumTotalScore: number;
+  overallPercentage: number;
+  isFlagged: boolean;
+  flagReasons: string[];
+}
+
+export async function getApplicantScoreBreakdown(userId: string): Promise<ApplicantScoreBreakdown> {
+  return request<ApplicantScoreBreakdown>("/ranking/comprehensive/calculate", {
+    method: "POST",
+    body: JSON.stringify({ userId }),
+  }, 15000);
 }
 
 export async function getAdminApplicantDetails(userId: string): Promise<AdminApplicantDetailsResponse> {

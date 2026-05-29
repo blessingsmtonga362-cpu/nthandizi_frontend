@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
+import { useUnreadCount } from "@/hooks/use-unread-count";
 
 const navItems = [
   { name: "Home",          href: "/dashboard",      img: "/myhome.png" },
@@ -20,6 +21,7 @@ const COLLAPSED_W = 72;
 export function StudentNav() {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(true);
+  const unreadCount = useUnreadCount("student");
 
   return (
     <>
@@ -69,6 +71,7 @@ export function StudentNav() {
         <nav className="flex-1 flex flex-col gap-1 px-3 pt-6">
           {navItems.map((item) => {
             const isActive = pathname === item.href;
+            const isNotifications = item.name === "Notifications";
             return (
               <Link
                 key={item.name}
@@ -80,17 +83,24 @@ export function StudentNav() {
                   isActive ? "bg-brand-blue/10" : "hover:bg-brand-blue/5"
                 )}
               >
-                {/* Icon */}
-                <img
-                  src={item.img}
-                  alt={item.name}
-                  className={cn(
-                    "w-6 h-6 object-contain shrink-0 transition-all duration-200",
-                    isActive
-                      ? "[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
-                      : "opacity-50 group-hover:opacity-100 group-hover:[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
+                {/* Icon wrapper — relative so badge can be positioned on it */}
+                <div className="relative shrink-0">
+                  <img
+                    src={item.img}
+                    alt={item.name}
+                    className={cn(
+                      "w-6 h-6 object-contain transition-all duration-200",
+                      isActive
+                        ? "[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
+                        : "opacity-50 group-hover:opacity-100 group-hover:[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
+                    )}
+                  />
+                  {isNotifications && unreadCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 min-w-[16px] h-4 px-0.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">
+                      {unreadCount > 99 ? "99+" : unreadCount}
+                    </span>
                   )}
-                />
+                </div>
 
                 <AnimatePresence initial={false}>
                   {expanded && (
@@ -119,6 +129,7 @@ export function StudentNav() {
       <nav className="lg:hidden fixed bottom-0 left-0 right-0 backdrop-blur-xl border-t border-[#E8E4DE] px-4 py-3 z-50 flex justify-around items-center" style={{ backgroundColor: "#FAF9F7" }}>
         {navItems.map((item) => {
           const isActive = pathname === item.href;
+          const isNotifications = item.name === "Notifications";
           return (
             <Link
               key={item.name}
@@ -128,16 +139,23 @@ export function StudentNav() {
                 isActive ? "scale-110" : ""
               )}
             >
-              <img
-                src={item.img}
-                alt={item.name}
-                className={cn(
-                  "w-5 h-5 object-contain transition-all duration-200",
-                  isActive
-                    ? "[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
-                    : "opacity-50 group-hover:opacity-100 group-hover:[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
+              <div className="relative">
+                <img
+                  src={item.img}
+                  alt={item.name}
+                  className={cn(
+                    "w-5 h-5 object-contain transition-all duration-200",
+                    isActive
+                      ? "[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
+                      : "opacity-50 group-hover:opacity-100 group-hover:[filter:invert(27%)_sepia(98%)_saturate(1200%)_hue-rotate(210deg)_brightness(97%)_contrast(97%)]"
+                  )}
+                />
+                {isNotifications && unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 px-0.5 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center leading-none">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
                 )}
-              />
+              </div>
               <span
                 className={cn(
                   "text-[10px] font-normal tracking-tight transition-colors duration-200",
