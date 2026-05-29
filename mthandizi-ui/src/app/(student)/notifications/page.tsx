@@ -4,12 +4,9 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { 
   Bell, 
-  CheckCircle2, 
   Clock, 
   Trash2,
   Check,
-  AlertCircle,
-  Info
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -20,11 +17,11 @@ import {
   type Notification,
 } from "@/lib/api";
 
-const iconMap = {
-  success: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-50" },
-  info:    { icon: Info,         color: "text-blue-500",    bg: "bg-blue-50"    },
-  urgent:  { icon: AlertCircle,  color: "text-red-500",     bg: "bg-red-50"     },
-  warning: { icon: AlertCircle,  color: "text-amber-500",   bg: "bg-amber-50"   },
+const accentMap = {
+  success: "border-l-emerald-500",
+  info:    "border-l-blue-500",
+  urgent:  "border-l-red-500",
+  warning: "border-l-amber-500",
 };
 
 export default function NotificationsPage() {
@@ -96,8 +93,7 @@ export default function NotificationsPage() {
         <div className="space-y-4">
           {notifications.length > 0 ? (
             notifications.map((n, i) => {
-              const meta = iconMap[n.type] ?? iconMap.info;
-              const IconComponent = meta.icon;
+              const accent = accentMap[n.type] ?? accentMap.info;
               return (
                 <motion.div
                   key={n.id}
@@ -105,28 +101,21 @@ export default function NotificationsPage() {
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1 }}
                   className={cn(
-                    "group relative bg-white rounded-[2rem] border p-6 md:p-8 transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50",
-                    !n.isRead ? "border-brand-blue/10 shadow-sm" : "border-slate-100 opacity-80"
+                    "group relative bg-white border border-l-4 p-6 md:p-8 transition-all duration-300 hover:shadow-lg hover:shadow-slate-200/50",
+                    accent,
+                    !n.isRead ? "border-slate-200 shadow-sm" : "border-slate-100 opacity-80"
                   )}
                 >
                   {/* Unread Indicator Dot */}
                   {!n.isRead && (
-                    <div className="absolute top-8 left-3 w-2 h-2 bg-brand-blue rounded-full" />
+                    <div className="absolute top-6 right-6 w-2 h-2 bg-brand-blue rounded-full" />
                   )}
 
-                  <div className="flex flex-col md:flex-row gap-6">
-                    {/* Icon Box */}
-                    <div className={cn(
-                      "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110 duration-500",
-                      meta.bg, meta.color
-                    )}>
-                      <IconComponent size={28} />
-                    </div>
-
+                  <div className="flex flex-col gap-2">
                     {/* Content */}
                     <div className="flex-1">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
-                        <h3 className="font-display font-normal text-brand-slate text-lg leading-tight group-hover:text-brand-blue transition-colors">
+                        <h3 className="font-display font-normal text-brand-slate text-lg leading-tight">
                           {n.title}
                         </h3>
                         <div className="flex items-center gap-2 text-slate-400 text-[10px] font-normal uppercase tracking-widest">
@@ -141,10 +130,10 @@ export default function NotificationsPage() {
                       {/* Actions for urgent notifications */}
                       {n.type === "urgent" && (
                         <div className="mt-6 flex gap-3">
-                          <Button className="bg-brand-blue hover:bg-brand-blueDark text-white h-10 px-6 rounded-xl text-[10px] font-normal uppercase tracking-widest">
+                          <Button className="bg-brand-blue hover:bg-brand-blueDark text-white h-10 px-6 text-[10px] font-normal uppercase tracking-widest rounded-none">
                             Fix Now
                           </Button>
-                          <Button variant="ghost" className="h-10 px-6 rounded-xl text-[10px] font-normal uppercase tracking-widest text-slate-400">
+                          <Button variant="ghost" className="h-10 px-6 text-[10px] font-normal uppercase tracking-widest text-slate-400 rounded-none">
                             Dismiss
                           </Button>
                         </div>

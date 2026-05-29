@@ -688,3 +688,62 @@ export function getAssetUrl(path?: string | null): string | null {
   if (path.startsWith("http://") || path.startsWith("https://")) return path;
   return `${BASE_URL}${path}`;
 }
+
+// ── Disbursement / Transfers ──────────────────────────────────────────────────
+
+export type TransferStatus = "pending" | "success" | "failed";
+
+export interface Transfer {
+  id: string;
+  reference: string;
+  phone: string;
+  amount: number;
+  currency: string;
+  status: TransferStatus;
+  provider: string | null;
+  externalReference: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InitiateTransferPayload {
+  phone: string;
+  amount: number;
+  name: string;
+}
+
+export interface InitiateTransferResponse {
+  success: boolean;
+  message: string;
+  data: Transfer;
+}
+
+export interface TransferStatusResponse {
+  success: boolean;
+  message: string;
+  data: Transfer;
+}
+
+export interface TransferHistoryResponse {
+  success: boolean;
+  data: Transfer[];
+  total: number;
+}
+
+export async function initiateTransfer(
+  payload: InitiateTransferPayload,
+): Promise<InitiateTransferResponse> {
+  return request<InitiateTransferResponse>("/transfer", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  }, 30000);
+}
+
+export async function getTransferStatus(reference: string): Promise<TransferStatusResponse> {
+  return request<TransferStatusResponse>(`/transfer/${reference}/status`);
+}
+
+export async function getTransferHistory(): Promise<Transfer[]> {
+  const res = await request<TransferHistoryResponse>("/transfer/history");
+  return res.data ?? [];
+}
