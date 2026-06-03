@@ -1,4 +1,4 @@
-
+// app/(auth)/verify/page.tsx
 import { Suspense } from "react";
 import VerifyContent from "./VerifyContent";
 

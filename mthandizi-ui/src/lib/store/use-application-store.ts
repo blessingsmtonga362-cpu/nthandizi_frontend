@@ -99,13 +99,6 @@ export interface EducationData {
   tertiary: EducationLevel;
 }
 
-export interface AcademicsData {
-  programOfStudy: string;
-  department: string;
-  yearOfStudy: string;
-  transcriptFile: File | null;
-}
-
 export interface PaymentData {
   paymentMethod: string;
   phoneNumber: string;
@@ -117,7 +110,6 @@ export interface ApplicationData {
   personal: PersonalData;
   family: FamilyData;
   education: EducationData;
-  academics: AcademicsData;
   payment: PaymentData;
   currentStep: number;
   lastSaved: Date | null;
@@ -127,11 +119,10 @@ export interface ApplicationData {
 
 interface ApplicationStore {
   data: ApplicationData;
-  updatePersonal: (d: Partial<PersonalData>) => void;
-  updateFamily: (d: Partial<FamilyData>) => void;
-  updateEducation: (level: keyof EducationData, d: Partial<EducationLevel>) => void;
-  updateAcademics: (d: Partial<AcademicsData>) => void;
-  updatePayment: (d: Partial<PaymentData>) => void;
+  updatePersonal: (updates: Partial<PersonalData>) => void;
+  updateFamily: (updates: Partial<FamilyData>) => void;
+  updateEducation: (level: keyof EducationData, updates: Partial<EducationLevel>) => void;
+  updatePayment: (updates: Partial<PaymentData>) => void;
   setStep: (step: number) => void;
   setReviewVisited: (visited?: boolean) => void;
   setDeclarationAccepted: (accepted: boolean) => void;
@@ -171,9 +162,6 @@ const initialData: ApplicationData = {
     secondary: { ...emptyEducationLevel },
     tertiary: { ...emptyEducationLevel },
   },
-  academics: {
-    programOfStudy: '', department: '', yearOfStudy: '', transcriptFile: null,
-  },
   payment: {
     paymentMethod: '', phoneNumber: '', accountName: '', accountNumber: '',
   },
@@ -200,9 +188,6 @@ export const useApplicationStore = create<ApplicationStore>((set) => ({
       },
       lastSaved: new Date(),
     }
-  })),
-  updateAcademics: (d) => set((s) => ({
-    data: { ...s.data, academics: { ...s.data.academics, ...d }, lastSaved: new Date() }
   })),
   updatePayment: (d) => set((s) => ({
     data: { ...s.data, payment: { ...s.data.payment, ...d }, lastSaved: new Date() }

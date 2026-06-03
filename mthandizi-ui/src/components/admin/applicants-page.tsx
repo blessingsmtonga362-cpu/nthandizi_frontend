@@ -18,12 +18,6 @@ import {
 } from "@/lib/api";
 import { toastSuccess, toastError } from "@/lib/toast";
 
-function formatValue(value: string | number | null | undefined) {
-  if (value === null || value === undefined) return "Not provided";
-  if (typeof value === "string" && value.trim() === "") return "Not provided";
-  return String(value);
-}
-
 function statusBadgeClass(status: AdminApplicantStatus) {
   switch (status) {
     case "approved":
@@ -202,9 +196,6 @@ export default function ApplicantsPage() {
     }
   };
 
-  const personal = details?.application.personalDetails;
-  const academics = details?.application.academicDetails;
-
   return (
     <>
       <div className="space-y-8">
@@ -282,9 +273,9 @@ export default function ApplicantsPage() {
                   </td>
                 </tr>
               ) : (
-                filteredApplicants.map((row) => (
+                filteredApplicants.map((row, i) => (
                   <tr key={row.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.rank ?? "—"}</td>
+                    <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.rank ?? i + 1}</td>
                     <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.name}</td>
                     <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.registrationNumber || row.id}</td>
                     <td className="px-6 py-4 text-sm font-normal text-slate-600">{row.program}</td>

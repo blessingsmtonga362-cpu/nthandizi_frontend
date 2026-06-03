@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   AlertCircle,
   CheckCircle,
-  Loader2,
   Users,
   X,
 } from "lucide-react";
@@ -16,126 +15,8 @@ import {
   getAdminApplicantDetails,
   getAdminDashboardStats,
   type AdminApplicantDetailsResponse,
-  type AdminEducationRecord,
-  type AdminFamilyDetails,
-  type AdminPersonalDetails,
   type DashboardStats,
 } from "@/lib/api";
-
-function formatValue(value: string | number | null | undefined) {
-  if (value === null || value === undefined) return "Not provided";
-  if (typeof value === "string" && value.trim() === "") return "Not provided";
-  return String(value);
-}
-
-function formatCurrency(value: string | number | null | undefined) {
-  if (value === null || value === undefined || value === "") return "Not provided";
-  return `MWK ${value}`;
-}
-
-function DetailGrid({ fields }: { fields: Array<{ label: string; value: string }> }) {
-  return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {fields.map((field) => (
-        <div key={field.label} className="space-y-1">
-          <p className="text-xs font-medium text-brand-slate">{field.label}</p>
-          <p className="text-sm font-normal text-slate-500 break-words">{field.value}</p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function renderFamilyFields(family: AdminFamilyDetails) {
-  const fields = [
-    { label: "Parental Status", value: formatValue(family.parentalStatus) },
-    { label: "Father First Name", value: formatValue(family.fatherFirstName) },
-    { label: "Father Surname", value: formatValue(family.fatherSurname) },
-    { label: "Father National ID", value: formatValue(family.fatherNationalId) },
-    { label: "Father Phone", value: formatValue(family.fatherPhone) },
-    { label: "Father Profession", value: formatValue(family.fatherProfession) },
-    { label: "Father Monthly Income", value: formatCurrency(family.fatherMonthlyIncome) },
-    { label: "Father T/A", value: formatValue(family.fatherTa) },
-    { label: "Father Residential Address", value: formatValue(family.fatherResidentialAddress) },
-    { label: "Father Postal Address", value: formatValue(family.fatherPostalAddress) },
-    { label: "Mother First Name", value: formatValue(family.motherFirstName) },
-    { label: "Mother Surname", value: formatValue(family.motherSurname) },
-    { label: "Mother National ID", value: formatValue(family.motherNationalId) },
-    { label: "Mother Phone", value: formatValue(family.motherPhone) },
-    { label: "Mother Profession", value: formatValue(family.motherProfession) },
-    { label: "Mother Monthly Income", value: formatCurrency(family.motherMonthlyIncome) },
-    { label: "Mother T/A", value: formatValue(family.motherTa) },
-    { label: "Mother Residential Address", value: formatValue(family.motherResidentialAddress) },
-    { label: "Mother Postal Address", value: formatValue(family.motherPostalAddress) },
-    { label: "Living Parent First Name", value: formatValue(family.parentFirstName) },
-    { label: "Living Parent Surname", value: formatValue(family.parentSurname) },
-    { label: "Living Parent National ID", value: formatValue(family.parentNationalId) },
-    { label: "Living Parent Phone", value: formatValue(family.parentPhone) },
-    { label: "Living Parent Income", value: formatCurrency(family.parentMonthlyIncome) },
-    { label: "Student Relationship", value: formatValue(family.studentRelationship) },
-    { label: "Parent T/A", value: formatValue(family.parentTa) },
-    { label: "Parent Residential Address", value: formatValue(family.parentResidentialAddress) },
-    { label: "Parent Postal Address", value: formatValue(family.parentPostalAddress) },
-    { label: "Deceased Parent ID", value: formatValue(family.deceasedParentId) },
-    { label: "Guardian First Name", value: formatValue(family.guardianFirstName) },
-    { label: "Guardian Last Name", value: formatValue(family.guardianLastName) },
-    { label: "Guardian National ID", value: formatValue(family.guardianNationalId) },
-    { label: "Guardian Phone", value: formatValue(family.guardianPhone) },
-    { label: "Guardian Income", value: formatCurrency(family.guardianMonthlyIncome) },
-    { label: "Relationship To Guardian", value: formatValue(family.relationshipToGuardian) },
-    { label: "Guardian T/A", value: formatValue(family.guardianTa) },
-    { label: "Guardian Residential Address", value: formatValue(family.guardianResidentialAddress) },
-    { label: "Guardian Postal Address", value: formatValue(family.guardianPostalAddress) },
-    { label: "Deceased Father ID", value: formatValue(family.deceasedFatherId) },
-    { label: "Deceased Mother ID", value: formatValue(family.deceasedMotherId) },
-    { label: "Number of Siblings", value: formatValue(family.numberOfSiblings) },
-    { label: "Number Still In School", value: formatValue(family.numberStillInSchool) },
-    { label: "Siblings In Primary", value: formatValue(family.siblingsInPrimary) },
-    { label: "Siblings In Secondary", value: formatValue(family.siblingsInSecondary) },
-    { label: "Siblings In Tertiary", value: formatValue(family.siblingsInTertiary) },
-  ];
-
-  return <DetailGrid fields={fields} />;
-}
-
-function EducationList({
-  title,
-  records,
-}: {
-  title: string;
-  records: AdminEducationRecord[];
-}) {
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-xs font-black uppercase tracking-widest text-slate-500">{title}</p>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-          {records.length} {records.length === 1 ? "record" : "records"}
-        </span>
-      </div>
-
-      {records.length === 0 ? (
-        <div className="border border-dashed border-slate-200 px-4 py-3 text-sm text-slate-400">
-          No records submitted for this level.
-        </div>
-      ) : (
-        records.map((record) => (
-          <div key={record.id} className="border border-slate-200 bg-slate-50/60 p-4">
-            <DetailGrid
-              fields={[
-                { label: "School Name", value: formatValue(record.schoolName) },
-                { label: "Tuition Fees", value: formatCurrency(record.tuitionFees) },
-                { label: "Year Completed", value: formatValue(record.yearCompleted) },
-                { label: "Who Paid Fees", value: formatValue(record.whoPaidFees) },
-                { label: "Verified", value: record.isVerified ? "Yes" : "No" },
-              ]}
-            />
-          </div>
-        ))
-      )}
-    </div>
-  );
-}
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -184,13 +65,10 @@ export default function AdminDashboard() {
   };
 
   const tiles = [
-    { label: "Total applications", value: stats?.totalApplications ?? "—", icon: Users, color: "text-blue-600", href: "/admin/applicants" },
+    { label: "Total applications", value: stats?.totalApplications ?? "—", icon: Users, color: "text-blue-600" },
     { label: "Approved applicants", value: stats?.approvedSupport ?? "—", icon: CheckCircle, color: "text-emerald-600", href: "/admin/approved" },
     { label: "Flagged applicants", value: stats?.flaggedFiles ?? "—", icon: AlertCircle, color: "text-red-600", href: "/admin/flagged" },
   ];
-
-  const personal = details?.application.personalDetails as AdminPersonalDetails | null | undefined;
-  const academics = details?.application.academicDetails;
 
   return (
     <>
@@ -211,8 +89,13 @@ export default function AdminDashboard() {
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.07 }}
-            onClick={() => router.push(stat.href)}
-            className="group bg-white p-6 border border-slate-200 relative overflow-hidden cursor-pointer hover:border-brand-blue hover:shadow-[0_16px_48px_-8px_rgba(15,23,42,0.22)] hover:scale-[1.02] transition-all duration-200"
+            onClick={() => {
+              if (stat.href) router.push(stat.href);
+            }}
+            className={cn(
+              "group bg-white p-6 border border-slate-200 relative overflow-hidden hover:border-brand-blue hover:shadow-[0_16px_48px_-8px_rgba(15,23,42,0.22)] hover:scale-[1.02] transition-all duration-200",
+              stat.href ? "cursor-pointer" : "cursor-default",
+            )}
           >
             <div className="origin-top-left transition-transform duration-200 ease-out group-hover:scale-[1.06]">
               <div className="mb-5">

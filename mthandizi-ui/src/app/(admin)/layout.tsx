@@ -19,6 +19,7 @@ const navItems = [
   { label: "Applicants",    href: "/admin/applicants",    img: "/apply.png" },
   { label: "Approved",      href: "/admin/approved",      img: "/approved.png" },
   { label: "Flagged",       href: "/admin/flagged",       img: "/flagged.png" },
+  { label: "Criteria",      href: "/admin/criteria",      img: "/scorecriteria.png" },
   { label: "Sponsors",      href: "/admin/sponsors",      img: "/sponsors.png" },
   { label: "Disbursement",  href: "/admin/disbursement",  img: "/disbursement.png" },
   { label: "Notifications", href: "/admin/notifications", img: "/notification.png" },
@@ -31,7 +32,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const [expanded, setExpanded] = useState(true);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const { loading } = useAuth("admin");
-  const unreadCount = useUnreadCount("admin");
+  const { unreadCount } = useUnreadCount("admin");
 
   const [storedUser, setStoredUser] = useState<AuthUser | null>(null);
   useEffect(() => {

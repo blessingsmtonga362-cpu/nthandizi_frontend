@@ -121,7 +121,7 @@ export default function ApplicantStatusPage({
                     onClick={() => void openApplicant(applicant.userId)}
                     className="hover:bg-slate-50 transition-colors cursor-pointer"
                   >
-                    <td className="px-6 py-4 text-sm font-normal text-slate-600">{i + 1}</td>
+                    <td className="px-6 py-4 text-sm font-normal text-slate-600">{applicant.rank ?? i + 1}</td>
                     <td className="px-6 py-4 text-sm font-normal text-slate-600">
                       {applicant.firstName} {applicant.lastName}
                     </td>

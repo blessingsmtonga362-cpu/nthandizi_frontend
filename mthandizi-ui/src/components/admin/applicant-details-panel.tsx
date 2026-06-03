@@ -4,6 +4,7 @@ import { ExternalLink, FileText } from "lucide-react";
 import { Loader2 } from "lucide-react";
 import type {
   AdminApplicantDetailsResponse,
+  AdminEducationRecord,
   AdminApplicantStatus,
   AdminFamilyDetails,
 } from "@/lib/api";
@@ -27,6 +28,16 @@ function formatApplicantStatus(status: AdminApplicantStatus) {
   }
 }
 
+function formatCurrency(value: string | number | null | undefined) {
+  if (value === null || value === undefined || value === "") return "Not provided";
+  return `MWK ${value}`;
+}
+
+function formatPercent(value: string | number | null | undefined) {
+  if (value === null || value === undefined || value === "") return "Not provided";
+  return `${value}%`;
+}
+
 function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="border border-slate-200 bg-white">
@@ -47,6 +58,45 @@ function DetailGrid({ fields }: { fields: Array<{ label: string; value: string }
           <p className="text-sm font-normal text-slate-500 break-words">{field.value}</p>
         </div>
       ))}
+    </div>
+  );
+}
+
+function EducationList({
+  title,
+  records,
+}: {
+  title: string;
+  records: AdminEducationRecord[];
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-xs font-bold uppercase tracking-widest text-slate-500">{title}</p>
+        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          {records.length} {records.length === 1 ? "record" : "records"}
+        </span>
+      </div>
+
+      {records.length === 0 ? (
+        <div className="border border-dashed border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-400">
+          No records submitted for this level.
+        </div>
+      ) : (
+        records.map((record) => (
+          <div key={record.id} className="border border-slate-200 bg-slate-50/60 p-4">
+            <DetailGrid
+              fields={[
+                { label: "School Name", value: formatValue(record.schoolName) },
+                { label: "Tuition Fees", value: formatCurrency(record.tuitionFees) },
+                { label: "Year Completed", value: formatValue(record.yearCompleted) },
+                { label: "Who Paid Fees", value: formatValue(record.whoPaidFees) },
+                { label: "Verified", value: record.isVerified ? "Yes" : "No" },
+              ]}
+            />
+          </div>
+        ))
+      )}
     </div>
   );
 }
@@ -133,8 +183,8 @@ export function ApplicantDetailsPanel({
   children,
 }: Props) {
   const personal = details?.application.personalDetails;
-  const academics = details?.application.academicDetails;
   const family = details?.application.familyDetails;
+  const education = details?.application.education;
 
   return (
     <div className="space-y-6 p-6">
@@ -156,6 +206,17 @@ export function ApplicantDetailsPanel({
                 { label: "Email", value: formatValue(details.applicant.email) },
                 { label: "Status", value: formatApplicantStatus(details.applicant.status) },
                 { label: "Review Comment", value: formatValue(details.applicant.reviewComments) },
+              ]}
+            />
+          </SectionCard>
+
+          <SectionCard title="Scoring">
+            <DetailGrid
+              fields={[
+                { label: "Need Index Score", value: formatValue(details.applicant.score) },
+                { label: "Rank", value: formatValue(details.applicant.rank) },
+                { label: "Overall Percentage", value: formatPercent(details.applicant.overallPercentage) },
+                { label: "System Flagged", value: details.applicant.scoreFlagged ? "Yes" : "No" },
               ]}
             />
             {details.applicant.scoreFlagReason && (
@@ -235,17 +296,25 @@ export function ApplicantDetailsPanel({
             )}
           </SectionCard>
 
-          <SectionCard title="Academic Details">
+          <SectionCard title="Payment Details">
             <DetailGrid
               fields={[
-                { label: "Program of Study", value: formatValue(academics?.programOfStudy) },
-                { label: "Department", value: formatValue(academics?.department) },
-                { label: "Year of Study", value: formatValue(academics?.yearOfStudy) },
-                { label: "Transcript URL", value: formatValue(academics?.transcriptPdfUrl) },
+                { label: "Payment Method", value: formatValue(personal?.paymentMethod) },
+                { label: "Payment Phone Number", value: formatValue(personal?.paymentPhoneNumber) },
+                { label: "Bank Name", value: formatValue(personal?.bankName) },
+                { label: "Bank Account Number", value: formatValue(personal?.bankAccount) },
+                { label: "Account Name", value: formatValue(personal?.accountName) },
               ]}
             />
           </SectionCard>
 
+          <SectionCard title="Education History">
+            <div className="space-y-6">
+              <EducationList title="Primary" records={education?.primary ?? []} />
+              <EducationList title="Secondary" records={education?.secondary ?? []} />
+              <EducationList title="Tertiary" records={education?.tertiary ?? []} />
+            </div>
+          </SectionCard>
           {children}
         </>
       ) : (
