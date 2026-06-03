@@ -1,7 +1,8 @@
 // src/app/layout.tsx
 import type { Metadata } from "next";
-import "./globals.css"; 
+import "./globals.css"; // <--- THIS LINE IS CRITICAL
 import { ErrorHandler } from "@/components/error-handler";
+import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
   title: "UNIMA Student Support System",
@@ -18,6 +19,7 @@ export default function RootLayout({
       <body className="font-sans">
         <ErrorHandler />
         {children}
+        <Toaster position="bottom-right" richColors={false} />
       </body>
     </html>
   );

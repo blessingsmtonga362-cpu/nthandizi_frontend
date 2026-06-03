@@ -4,6 +4,7 @@ import { useApplicationStore } from "@/lib/store/use-application-store";
 import { Edit3, ChevronDown, ChevronUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { FieldErrors } from "@/lib/application-validation";
 
 function ReviewCard({
   title,
@@ -47,7 +48,7 @@ function ReviewCard({
 
       {!expanded && (
         <div className="px-8 py-3 text-[11px] text-slate-300 font-medium italic">
-          Click "View More" to see details
+          Click View More to see details
         </div>
       )}
     </div>
@@ -65,7 +66,7 @@ function Field({ label, value }: { label: string; value?: string | null }) {
   );
 }
 
-export default function Step4() {
+export default function Step4({ errors = {} }: { errors?: FieldErrors }) {
   const { data, setStep, setReviewVisited, setDeclarationAccepted } = useApplicationStore();
   const { personal: p, family: f, education: e, payment: pay } = data;
 
@@ -240,6 +241,9 @@ export default function Step4() {
             I agree to the above declaration
           </span>
         </label>
+        {errors.declarationAccepted && (
+          <p className="text-xs font-normal text-red-500 mt-2">{errors.declarationAccepted}</p>
+        )}
       </div>
     </div>
   );

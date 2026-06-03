@@ -114,6 +114,78 @@ export interface DashboardStats {
   priorityQueue: PriorityStudent[];
 }
 
+export interface CriteriaBand {
+  label?: string;
+  minimum: number;
+  maximum: number | null;
+  score: number;
+  isFlagged?: boolean;
+}
+
+export interface CriteriaNamedScore {
+  key: string;
+  label: string;
+  score: number;
+}
+
+export interface RankingCriteriaConfig {
+  academic: {
+    maximumScore: number;
+    minimumGpa: number;
+    maximumGpa: number;
+    minimumPassingScore: number;
+  };
+  familyBackground: {
+    maximumScore: number;
+    parentStatusMaximum: number;
+    monthlyIncomeMaximum: number;
+    siblingMaximum: number;
+    educationBurdenMaximum: number;
+    parentStatusScores: CriteriaNamedScore[];
+    incomeBands: CriteriaBand[];
+    siblingBands: CriteriaBand[];
+    educationBurdenBands: CriteriaBand[];
+  };
+  educationBackground: {
+    maximumScore: number;
+    primaryFeeMaximum: number;
+    secondaryFeeMaximum: number;
+    fundingMaximum: number;
+    primaryFeeBands: CriteriaBand[];
+    secondaryFeeBands: CriteriaBand[];
+    fundingScores: CriteriaNamedScore[];
+  };
+  integrityCheck: {
+    maximumScore: number;
+    registrationNumberScore: number;
+    nationalIdScore: number;
+    parentIdScore: number;
+    deathVerificationScore: number;
+    requiredDocumentsScore: number;
+  };
+  disability: {
+    maximumScore: number;
+    disabilityScore: number;
+    noDisabilityScore: number;
+  };
+}
+
+export interface RankingCriteriaTemplate {
+  id: string;
+  name: string;
+  isDefault?: boolean;
+  isActive: boolean;
+  criteria: RankingCriteriaConfig;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RankingCriteriaResponse {
+  defaultCriteria: RankingCriteriaTemplate;
+  templates: RankingCriteriaTemplate[];
+  limit: number;
+}
+
 export type AdminApplicantStatus = "pending_review" | "approved" | "flagged";
 
 export interface PriorityStudent {
@@ -146,6 +218,7 @@ export interface AdminApplicantListItem extends AdminApplicantProfile {
   department: string | null;
   yearOfStudy: number | null;
   score?: number | null;
+  rank?: number | null;
 }
 
 export interface AdminApplicantsByStatusResponse {
@@ -532,8 +605,17 @@ export async function getStudentNotifications(): Promise<Notification[]> {
   return res.data ?? [];
 }
 
+export async function getStudentUnreadCount(): Promise<number> {
+  const res = await request<{ success: boolean; unreadCount: number }>("/notifications/unread-count");
+  return res.unreadCount ?? 0;
+}
+
 export async function markNotificationRead(id: string | number): Promise<void> {
   return request<void>(`/notifications/${id}/read`, { method: "PATCH" });
+}
+
+export async function deleteNotification(id: string | number): Promise<void> {
+  return request<void>(`/notifications/${id}`, { method: "DELETE" });
 }
 
 export async function markAllNotificationsRead(): Promise<void> {
@@ -541,7 +623,7 @@ export async function markAllNotificationsRead(): Promise<void> {
 }
 
 export async function clearAllNotifications(): Promise<void> {
-  return request<void>("/notifications", { method: "DELETE" });
+  return request<void>("/notifications/clear-all", { method: "DELETE" });
 }
 
 export async function submitApplication(payload: unknown): Promise<SubmitApplicationResponse> {
@@ -562,6 +644,39 @@ export async function saveApplicationDraft(payload: unknown): Promise<void> {
 
 export async function getAdminDashboardStats(): Promise<DashboardStats> {
   return request<DashboardStats>("/admin/dashboard/stats");
+}
+
+export async function getRankingCriteria(): Promise<RankingCriteriaResponse> {
+  return request<RankingCriteriaResponse>("/ranking/criteria");
+}
+
+export async function saveRankingCriteriaTemplate(payload: {
+  name: string;
+  criteria: RankingCriteriaConfig;
+  activate?: boolean;
+}): Promise<RankingCriteriaTemplate> {
+  return request<RankingCriteriaTemplate>("/ranking/criteria/templates", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function activateRankingCriteriaTemplate(id: string): Promise<RankingCriteriaTemplate> {
+  return request<RankingCriteriaTemplate>(`/ranking/criteria/templates/${id}/activate`, {
+    method: "PATCH",
+  });
+}
+
+export async function activateDefaultRankingCriteria(): Promise<RankingCriteriaTemplate> {
+  return request<RankingCriteriaTemplate>("/ranking/criteria/default/activate", {
+    method: "PATCH",
+  });
+}
+
+export async function deleteRankingCriteriaTemplate(id: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/ranking/criteria/templates/${id}`, {
+    method: "DELETE",
+  });
 }
 
 export async function getAdminNotifications(): Promise<Notification[]> {
@@ -650,10 +765,17 @@ export async function getSponsorDetails(id: string): Promise<SponsorDetails> {
   return request<SponsorDetails>(`/sponsors/${id}`);
 }
 
+export async function deleteSponsor(id: string): Promise<{ success: boolean; message: string }> {
+  return request<{ success: boolean; message: string }>(`/sponsors/${id}`, {
+    method: "DELETE",
+  });
+}
+
 export async function createSponsor(payload: {
   name: string;
   requestedSlots: number;
   logo?: File | null;
+  rankingCriteriaId?: string;
 }): Promise<SponsorDetails> {
   const token = getToken();
   const formData = new FormData();
@@ -661,6 +783,9 @@ export async function createSponsor(payload: {
   formData.append("requestedSlots", String(payload.requestedSlots));
   if (payload.logo) {
     formData.append("logo", payload.logo);
+  }
+  if (payload.rankingCriteriaId) {
+    formData.append("rankingCriteriaId", payload.rankingCriteriaId);
   }
 
   const res = await fetch(`${BASE_URL}/sponsors`, {
@@ -697,11 +822,13 @@ export interface Transfer {
   id: string;
   reference: string;
   phone: string;
+  name: string;
   amount: number;
   currency: string;
   status: TransferStatus;
   provider: string | null;
   externalReference: string | null;
+  sponsorName: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -710,6 +837,7 @@ export interface InitiateTransferPayload {
   phone: string;
   amount: number;
   name: string;
+  sponsorName?: string;
 }
 
 export interface InitiateTransferResponse {
@@ -746,4 +874,70 @@ export async function getTransferStatus(reference: string): Promise<TransferStat
 export async function getTransferHistory(): Promise<Transfer[]> {
   const res = await request<TransferHistoryResponse>("/transfer/history");
   return res.data ?? [];
+}
+
+// ── Approved students for disbursement pre-fill ───────────────────────────────
+
+export interface ApprovedStudentForDisbursement {
+  userId: string;
+  name: string;
+  sponsorName: string | null;
+  paymentAccountNumber?: string;
+  paymentPhoneNumber?: string;
+}
+
+export async function getApprovedStudentsForDisbursement(): Promise<ApprovedStudentForDisbursement[]> {
+  // Fetch approved applicants and sponsors in parallel, then cross-reference
+  const [approvedRes, sponsorsRes] = await Promise.allSettled([
+    request<AdminApplicantsByStatusResponse>("/admin/applications/approved"),
+    request<SponsorListItem[]>("/sponsors"),
+  ]);
+
+  const applicants =
+    approvedRes.status === "fulfilled" ? approvedRes.value.applicants : [];
+  const sponsors =
+    sponsorsRes.status === "fulfilled" ? sponsorsRes.value : [];
+
+  // Build a map of userId → sponsorName by fetching each sponsor's allocations
+  const userSponsorMap = new Map<string, string>();
+  await Promise.allSettled(
+    sponsors.map(async (sponsor) => {
+      try {
+        const details = await request<SponsorDetails>(`/sponsors/${sponsor.id}`);
+        for (const applicant of details.applicants) {
+          userSponsorMap.set(applicant.userId, sponsor.name);
+        }
+      } catch {
+        // non-fatal
+      }
+    }),
+  );
+
+  return applicants.map((a) => ({
+    userId: a.userId,
+    name: `${a.firstName} ${a.lastName}`.trim(),
+    sponsorName: userSponsorMap.get(a.userId) ?? null,
+  }));
+}
+
+/**
+ * Fetch payment details for a single approved student.
+ * Called lazily when the admin selects a student in the disbursement form.
+ */
+export async function getApplicantPaymentDetails(userId: string): Promise<{
+  paymentMethod: string | null;
+  paymentPhoneNumber: string | null;
+  bankName: string | null;
+  bankAccount: string | null;
+  accountName: string | null;
+}> {
+  const details = await request<AdminApplicantDetailsResponse>(`/admin/users/${userId}`);
+  const p = details.application.personalDetails;
+  return {
+    paymentMethod: p?.paymentMethod ?? null,
+    paymentPhoneNumber: p?.paymentPhoneNumber ?? null,
+    bankName: p?.bankName ?? null,
+    bankAccount: p?.bankAccount ?? null,
+    accountName: p?.accountName ?? null,
+  };
 }

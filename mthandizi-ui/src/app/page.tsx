@@ -95,7 +95,7 @@ export default function LandingPage() {
         <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden">
 
           {/* Background photo */}
-         
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src="/2-hanz.jpg"
             alt=""
@@ -163,7 +163,7 @@ export default function LandingPage() {
 
               <motion.div variants={itemVariants} className="flex flex-col sm:flex-row gap-5 justify-center items-center">
                 <Link
-                  href="register"
+                  href="/register"
                   className="h-14 px-12 bg-brand-blue text-white text-base font-bold flex items-center gap-2 hover:bg-brand-blueDark hover:scale-[1.02] transition-all duration-200 shadow-2xl shadow-brand-blue/30"
                 >
                   Get Started Now <ArrowRight size={18} />

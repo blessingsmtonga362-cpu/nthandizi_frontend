@@ -187,13 +187,6 @@ function getEducationFields(data: ApplicationData): unknown[] {
   return required;
 }
 
-function getReviewFields(data: ApplicationData): unknown[] {
-  const fields: unknown[] = [];
-  if (data.reviewVisited) fields.push("visited");
-  if (data.declarationAccepted) fields.push("declaration");
-  return fields;
-}
-
 function getReviewSectionState(data: ApplicationData): SectionState {
   if (data.declarationAccepted) return "complete";
   if (data.reviewVisited || data.currentStep >= 4) return "partial";

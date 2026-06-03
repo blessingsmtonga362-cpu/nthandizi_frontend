@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { useUnreadCount } from "@/hooks/use-unread-count";
+import { useNotifications } from "@/lib/notification-context";
 
 const navItems = [
   { name: "Home",          href: "/dashboard",      img: "/myhome.png" },
@@ -21,7 +21,7 @@ const COLLAPSED_W = 72;
 export function StudentNav() {
   const pathname = usePathname();
   const [expanded, setExpanded] = useState(true);
-  const unreadCount = useUnreadCount("student");
+  const { unreadCount } = useNotifications();
 
   return (
     <>
