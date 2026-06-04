@@ -5,7 +5,7 @@ import { ErrorHandler } from "@/components/error-handler";
 import { Toaster } from "sonner";
 
 export const metadata: Metadata = {
-  title: "UNIMA Student Support System",
+  title: "Mthandizi",
   description: "Official Student Support Profiling System for the University of Malawi",
 };
 
